@@ -26,6 +26,7 @@ dev = [
     "ruff>=0.6",
     "types-openpyxl",
     "types-reportlab",
+    "pytest-cov>=7.1.0",
 ]
 
 [build-system]
@@ -41,13 +42,9 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "S", "SIM", "RUF"]
-ignore = [
-    "B008",   # FastAPI Depends() in defaults is idiomatic
-    "RUF001", "RUF002", # German typography (en dash)
-]
+ignore = ["B008", "RUF001", "RUF002"]
 
 [tool.ruff.lint.isort]
-# The local alembic/ directory must not make the alembic package look first-party.
 known-third-party = ["alembic"]
 
 [tool.ruff.lint.per-file-ignores]
@@ -63,6 +60,16 @@ exclude = ["alembic/"]
 [[tool.mypy.overrides]]
 module = ["pyotp.*"]
 ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["einsatzbereit"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 95
+show_missing = true
+skip_covered = true
+exclude_also = ['if __name__ == "__main__":']
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

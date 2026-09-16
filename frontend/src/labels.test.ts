@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { cellHint, daysUntil, formatDate, formatDateTime, shortName } from "./labels";
+import { cellHint, certShortName, daysUntil, formatDate, formatDateTime, shortName } from "./labels";
+import type { Certification } from "./types";
 
 describe("formatDate", () => {
   it("formats ISO dates in German order", () => {
@@ -35,7 +36,6 @@ describe("daysUntil", () => {
     expect(daysUntil("2026-09-10", "2026-09-16")).toBe(-6);
   });
   it("is not affected by daylight saving changes", () => {
-    // DST ends 2026-10-25, starts 2027-03-28 in Germany
     expect(daysUntil("2026-10-26", "2026-10-24")).toBe(2);
     expect(daysUntil("2027-03-29", "2027-03-27")).toBe(2);
   });
@@ -72,5 +72,30 @@ describe("shortName", () => {
   });
   it("truncates single words", () => {
     expect(shortName("Sprechfunk", "")).toBe("Spre");
+  });
+});
+
+describe("certShortName", () => {
+  const cert = (id: number, name: string, short_name: string): Certification => ({
+    id,
+    name,
+    short_name,
+    kind: "test",
+    description: "",
+    validity_mode: "unlimited",
+    validity_months: null,
+    warn_days: 0,
+    sort_order: 0,
+    is_active: true,
+  });
+  const certs = new Map([
+    [1, cert(1, "G26.3 Untersuchung", "G26")],
+    [2, cert(2, "Erste Hilfe", "")],
+  ]);
+
+  it("looks up abbreviations by id", () => {
+    expect(certShortName(certs, 1)).toBe("G26");
+    expect(certShortName(certs, 2)).toBe("EH");
+    expect(certShortName(certs, 3)).toBe("?");
   });
 });

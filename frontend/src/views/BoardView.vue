@@ -7,7 +7,7 @@ import FilterBar from "../components/FilterBar.vue";
 import StatusCounts from "../components/StatusCounts.vue";
 import StatusPeg from "../components/StatusPeg.vue";
 import { useMatrixFilter } from "../filter";
-import { cellHint, formatDate, shortName, STATUS_LABEL } from "../labels";
+import { cellHint, certShortName, formatDate, STATUS_LABEL } from "../labels";
 import type { Certification, Overview, Position } from "../types";
 
 const { filter, update, reset, queryString } = useMatrixFilter();
@@ -31,10 +31,7 @@ async function load(): Promise<void> {
 }
 
 onMounted(async () => {
-  const [p, c] = await Promise.all([
-    api<Position[]>("/api/positions"),
-    api<Certification[]>("/api/certifications"),
-  ]);
+  const [p, c] = await Promise.all([api<Position[]>("/api/positions"), api<Certification[]>("/api/certifications")]);
   positions.value = p;
   allCerts.value = c.filter((x) => x.is_active);
 });
@@ -53,10 +50,6 @@ async function exportAs(fmt: "csv" | "xlsx" | "pdf"): Promise<void> {
 
 const certs = computed(() => data.value?.certifications ?? []);
 const certById = computed(() => new Map(certs.value.map((c) => [c.id, c])));
-function pegLabel(id: number): string {
-  const c = certById.value.get(id);
-  return c ? shortName(c.name, c.short_name) : "?";
-}
 </script>
 
 <template>
@@ -71,13 +64,7 @@ function pegLabel(id: number): string {
       </div>
     </div>
 
-    <FilterBar
-      :filter="filter"
-      :positions="positions"
-      :certifications="allCerts"
-      @update="update"
-      @reset="reset"
-    />
+    <FilterBar :filter="filter" :positions="positions" :certifications="allCerts" @update="update" @reset="reset" />
 
     <p v-if="error" class="error">{{ error }}</p>
 
@@ -92,7 +79,6 @@ function pegLabel(id: number): string {
 
       <p v-if="data.rows.length === 0" class="panel">Keine Kameraden passen zu diesem Filter.</p>
 
-      <!-- Desktop: full matrix -->
       <div v-else class="table-wrap matrix">
         <table>
           <thead>
@@ -125,7 +111,6 @@ function pegLabel(id: number): string {
         </table>
       </div>
 
-      <!-- Mobile: peg strip per member -->
       <ul v-if="data.rows.length" class="list board">
         <li v-for="row in data.rows" :key="row.member.id">
           <RouterLink :to="`/kameraden/${row.member.id}`" class="list-item">
@@ -141,7 +126,7 @@ function pegLabel(id: number): string {
                 :key="cell.certification_id"
                 :status="cell.status"
                 :required="cell.required"
-                :label="pegLabel(cell.certification_id)"
+                :label="certShortName(certById, cell.certification_id)"
                 :title="certById.get(cell.certification_id)?.name"
               />
             </div>

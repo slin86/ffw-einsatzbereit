@@ -1,4 +1,4 @@
-import type { CellStatus, CertificationKind, ValidityMode } from "./types";
+import type { CellStatus, Certification, CertificationKind, ValidityMode } from "./types";
 
 export const STATUS_LABEL: Record<CellStatus, string> = {
   missing: "Fehlt",
@@ -37,7 +37,18 @@ export function daysUntil(iso: string | null, today: string): number | null {
 export function shortName(name: string, short: string): string {
   if (short) return short;
   const words = name.split(/[\s-]+/).filter(Boolean);
-  return words.length > 1 ? words.map((w) => w[0]).join("").slice(0, 4).toUpperCase() : name.slice(0, 4);
+  return words.length > 1
+    ? words
+        .map((w) => w[0])
+        .join("")
+        .slice(0, 4)
+        .toUpperCase()
+    : name.slice(0, 4);
+}
+
+export function certShortName(certs: ReadonlyMap<number, Certification>, id: number): string {
+  const c = certs.get(id);
+  return c ? shortName(c.name, c.short_name) : "?";
 }
 
 export function cellHint(status: CellStatus, expires: string | null, today: string): string {

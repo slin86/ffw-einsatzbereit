@@ -5,8 +5,8 @@ import { RouterLink, useRoute, useRouter } from "vue-router";
 import { api, errorText } from "../api";
 import StatusCounts from "../components/StatusCounts.vue";
 import StatusPeg from "../components/StatusPeg.vue";
-import { filterToSearch, parseFilter } from "../filter";
-import { cellHint, formatDate, shortName } from "../labels";
+import { EMPTY_FILTER, filterToSearch, parseFilter } from "../filter";
+import { cellHint, certShortName, formatDate } from "../labels";
 import { buildOpenRows } from "../todo";
 import type { Cell, Certification, Overview, Position } from "../types";
 
@@ -16,7 +16,6 @@ const data = ref<Overview | null>(null);
 const positions = ref<Position[]>([]);
 const error = ref("");
 
-// Only the position filter is used here; it is kept in the URL like on the overview page.
 const positionId = computed(() => parseFilter(route.query).position_id);
 const position = computed(() => positions.value.find((p) => p.id === positionId.value));
 
@@ -27,7 +26,7 @@ function selectPosition(id: number | null): void {
 async function load(): Promise<void> {
   error.value = "";
   try {
-    const search = filterToSearch({ ...parseFilter({}), position_id: positionId.value });
+    const search = filterToSearch({ ...EMPTY_FILTER, position_id: positionId.value });
     data.value = await api<Overview>(`/api/overview${search ? `?${search}` : ""}`);
   } catch (e) {
     error.value = errorText(e);
@@ -39,7 +38,6 @@ const chips = ref<HTMLElement | null>(null);
 onMounted(async () => {
   try {
     positions.value = await api<Position[]>("/api/positions");
-    // On phones the chip row scrolls; make a preselected position (from the URL) visible.
     await nextTick();
     chips.value?.querySelector('[aria-pressed="true"]')?.scrollIntoView({ block: "nearest", inline: "center" });
   } catch (e) {
@@ -56,10 +54,6 @@ const openRows = computed(() => buildOpenRows(data.value?.rows ?? []));
 const doneCount = computed(() => (data.value?.rows.length ?? 0) - openRows.value.length);
 const scope = computed(() => (position.value ? ` mit Funktion ${position.value.name}` : ""));
 
-function certLabel(c: Cell): string {
-  const cert = certById.value.get(c.certification_id);
-  return cert ? shortName(cert.name, cert.short_name) : "?";
-}
 function certName(c: Cell): string {
   return certById.value.get(c.certification_id)?.name ?? "";
 }
@@ -70,9 +64,7 @@ function certName(c: Cell): string {
     <h1>Offen</h1>
 
     <div v-if="positions.length" ref="chips" class="positions" role="group" aria-label="Nach Funktion filtern">
-      <button type="button" class="chip" :aria-pressed="positionId === null" @click="selectPosition(null)">
-        Alle
-      </button>
+      <button type="button" class="chip" :aria-pressed="positionId === null" @click="selectPosition(null)">Alle</button>
       <button
         v-for="p in positions"
         :key="p.id"
@@ -87,7 +79,9 @@ function certName(c: Cell): string {
 
     <p v-if="data" class="lede">
       Stand {{ formatDate(data.today) }}.
-      <template v-if="data.rows.length === 0 && position">Kein aktiver Kamerad hat die Funktion {{ position.name }}.</template>
+      <template v-if="data.rows.length === 0 && position"
+        >Kein aktiver Kamerad hat die Funktion {{ position.name }}.</template
+      >
       <template v-else-if="openRows.length === 0">
         Alle {{ data.rows.length }} aktiven Kameraden{{ scope }} sind vollständig.
       </template>
@@ -109,7 +103,7 @@ function certName(c: Cell): string {
           </div>
           <ul class="items">
             <li v-for="c in row.open" :key="c.certification_id">
-              <StatusPeg :status="c.status" :label="certLabel(c)" :title="certName(c)" />
+              <StatusPeg :status="c.status" :label="certShortName(certById, c.certification_id)" :title="certName(c)" />
               <span class="small">
                 <span class="name">{{ certName(c) }}</span>
                 <span class="hint">{{ cellHint(c.status, c.expires_on, data!.today) }}</span>
@@ -128,7 +122,6 @@ function certName(c: Cell): string {
 </template>
 
 <style scoped>
-/* Horizontally scrollable on phones, wraps on wider screens. */
 .positions {
   display: flex;
   gap: 0.4rem;

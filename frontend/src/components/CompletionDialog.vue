@@ -7,7 +7,7 @@ import type { Certification } from "../types";
 const props = defineProps<{ memberId: number; certifications: Certification[] }>();
 const emit = defineEmits<{ saved: [] }>();
 
-const today = () => new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD in local time
+const today = () => new Date().toLocaleDateString("sv-SE");
 const dialog = ref<HTMLDialogElement | null>(null);
 const form = ref({ certification_id: 0, completed_on: today(), manual_expires_on: "", note: "" });
 const error = ref("");

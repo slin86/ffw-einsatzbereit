@@ -24,7 +24,6 @@ ADMIN = ("admin@example.org", "admin-password-123")
 USER = ("user@example.org", "user-password-123")
 
 
-# Set EB_TEST_DATABASE_URL to run the suite against PostgreSQL (as CI does).
 TEST_DATABASE_URL = os.environ.get("EB_TEST_DATABASE_URL", "")
 
 

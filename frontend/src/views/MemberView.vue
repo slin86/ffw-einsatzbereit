@@ -7,7 +7,7 @@ import AuditList from "../components/AuditList.vue";
 import CompletionDialog from "../components/CompletionDialog.vue";
 import MemberDialog from "../components/MemberDialog.vue";
 import StatusPeg from "../components/StatusPeg.vue";
-import { cellHint, formatDate, KIND_LABEL, shortName, STATUS_LABEL } from "../labels";
+import { cellHint, certShortName, formatDate, KIND_LABEL, STATUS_LABEL } from "../labels";
 import { session } from "../session";
 import type { Certification, Completion, MemberDetail, Position } from "../types";
 
@@ -37,20 +37,13 @@ async function load(): Promise<void> {
 }
 
 onMounted(async () => {
-  const [c, p] = await Promise.all([
-    api<Certification[]>("/api/certifications"),
-    api<Position[]>("/api/positions"),
-  ]);
+  const [c, p] = await Promise.all([api<Certification[]>("/api/certifications"), api<Position[]>("/api/positions")]);
   certifications.value = c.filter((x) => x.is_active);
   positions.value = p;
 });
 watch(() => props.id, load, { immediate: true });
 
 const certById = computed(() => new Map(certifications.value.map((c) => [c.id, c])));
-function pegLabel(id: number): string {
-  const c = certById.value.get(id);
-  return c ? shortName(c.name, c.short_name) : "?";
-}
 
 const required = computed(() => detail.value?.cells.filter((c) => c.required) ?? []);
 const optional = computed(() => detail.value?.cells.filter((c) => !c.required && c.completed_on) ?? []);
@@ -99,16 +92,15 @@ async function remove(entry: Completion): Promise<void> {
         </p>
         <ul v-else class="list">
           <li v-for="cell in required" :key="cell.certification_id" class="list-item status-row">
-            <StatusPeg
-              :status="cell.status"
-              :label="pegLabel(cell.certification_id)"
-            />
+            <StatusPeg :status="cell.status" :label="certShortName(certById, cell.certification_id)" />
             <div class="grow">
               <strong>{{ certById.get(cell.certification_id)?.name }}</strong>
               <div class="small muted">
                 {{ STATUS_LABEL[cell.status] }}
                 <template v-if="cell.completed_on"> · zuletzt {{ formatDate(cell.completed_on) }}</template>
-                <template v-if="cell.status !== 'missing'"> · {{ cellHint(cell.status, cell.expires_on, today) }}</template>
+                <template v-if="cell.status !== 'missing'">
+                  · {{ cellHint(cell.status, cell.expires_on, today) }}</template
+                >
               </div>
             </div>
             <button class="secondary" @click="completionDialog?.open(cell.certification_id)">Eintragen</button>

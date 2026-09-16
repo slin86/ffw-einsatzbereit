@@ -1,6 +1,4 @@
-# OPTIONAL – not referenced by kustomization.yaml yet.
-# Nightly pg_dump to the NAS. Adjust server/path to your NFS export, then add this
-# file to base/kustomization.yaml. Runs once a day, so the NAS wakes up at most once.
+# TODO: set the NFS server and path, then add this file to base/kustomization.yaml
 apiVersion: batch/v1
 kind: CronJob
 metadata:

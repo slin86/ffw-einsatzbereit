@@ -15,14 +15,14 @@ const saving = ref(false);
 function resetForm(): void {
   const m = props.member;
   form.value = m
-      ? {
-          number: m.number,
-          last_name: m.last_name,
-          first_name: m.first_name,
-          is_active: m.is_active,
-          position_ids: m.positions.map((p) => p.id),
-        }
-      : { number: "", last_name: "", first_name: "", is_active: true, position_ids: [] };
+    ? {
+        number: m.number,
+        last_name: m.last_name,
+        first_name: m.first_name,
+        is_active: m.is_active,
+        position_ids: m.positions.map((p) => p.id),
+      }
+    : { number: "", last_name: "", first_name: "", is_active: true, position_ids: [] };
 }
 watch(() => props.member, resetForm, { immediate: true });
 

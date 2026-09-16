@@ -16,7 +16,6 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 
 from einsatzbereit.services.status import Cell, CellStatus, Matrix
 
-# User-facing labels are German, matching the UI.
 STATUS_LABEL: dict[CellStatus, str] = {
     CellStatus.MISSING: "fehlt",
     CellStatus.EXPIRED: "abgelaufen",
@@ -64,16 +63,13 @@ def to_csv(matrix: Matrix) -> bytes:
         for cell in row.cells:
             line += [STATUS_LABEL[cell.status], _fmt(cell.expires_on)]
         writer.writerow(line)
-    # UTF-8 BOM so Excel opens umlauts correctly.
     return ("\ufeff" + buf.getvalue()).encode("utf-8")
 
 
 def to_xlsx(matrix: Matrix, filter_description: str) -> bytes:
     wb = Workbook()
-    ws = wb.active
-    if ws is None:  # pragma: no cover - a new workbook always has a sheet
-        ws = wb.create_sheet()
-    ws.title = "Nachweise"
+    wb.remove(wb["Sheet"])
+    ws = wb.create_sheet("Nachweise")
     ws.append([f"Einsatzbereit – Stand {_fmt(matrix.today)}"])
     ws["A1"].font = Font(bold=True, size=14)
     ws.append([filter_description])
@@ -92,7 +88,7 @@ def to_xlsx(matrix: Matrix, filter_description: str) -> bytes:
             xl = ws.cell(row=ws.max_row, column=idx)
             xl.fill = PatternFill("solid", fgColor=STATUS_COLOR[status_cell.status])
             xl.alignment = Alignment(horizontal="center")
-    ws.freeze_panes = ws.cell(row=header_row + 1, column=4)
+    ws.freeze_panes = f"D{header_row + 1}"
     for col in range(1, len(matrix.certifications) + 4):
         ws.column_dimensions[get_column_letter(col)].width = 8 if col == 1 else 16
     ws.append([])
@@ -121,7 +117,6 @@ def to_pdf(matrix: Matrix, filter_description: str) -> bytes:
     small = ParagraphStyle("small", parent=styles["Normal"], fontSize=7, leading=8)
     head = ParagraphStyle("head", parent=small, fontName="Helvetica-Bold")
 
-    # Full names do not fit into narrow columns; use abbreviations plus a legend.
     header = ["Nr", "Name", "Vorname", *[c.short_name or c.name for c in matrix.certifications]]
     data: list[list[Paragraph]] = [[Paragraph(h, head) for h in header]]
     style: list[Any] = [

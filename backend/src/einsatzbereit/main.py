@@ -26,6 +26,7 @@ CSP = (
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    get_settings().check_production_safety()
     with get_sessionmaker()() as db:
         ensure_initial_admin(db)
     yield

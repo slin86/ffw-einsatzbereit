@@ -1,4 +1,3 @@
-# Public exposure via Traefik. TLS comes from the existing *.slin.io wildcard (DNS-01).
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

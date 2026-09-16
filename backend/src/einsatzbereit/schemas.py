@@ -13,9 +13,6 @@ class ORMModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# --- Auth -------------------------------------------------------------------
-
-
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
@@ -61,9 +58,6 @@ class TotpDisable(BaseModel):
     code: str = Field(min_length=6, max_length=8)
 
 
-# --- Users ------------------------------------------------------------------
-
-
 class UserOut(ORMModel):
     id: int
     email: str
@@ -84,9 +78,6 @@ class UserUpdate(BaseModel):
     display_name: str | None = Field(default=None, min_length=1, max_length=120)
     role: UserRole | None = None
     is_active: bool | None = None
-
-
-# --- Positions / certifications ---------------------------------------------
 
 
 class CertificationRef(ORMModel):
@@ -141,9 +132,6 @@ class PositionRef(ORMModel):
     name: str
 
 
-# --- Members ----------------------------------------------------------------
-
-
 class MemberIn(BaseModel):
     number: str = Field(min_length=1, max_length=32)
     last_name: str = Field(min_length=1, max_length=80)
@@ -159,9 +147,6 @@ class MemberOut(ORMModel):
     first_name: str
     is_active: bool
     positions: list[PositionRef]
-
-
-# --- Completions ------------------------------------------------------------
 
 
 class CompletionIn(BaseModel):
@@ -212,9 +197,6 @@ class CompletionOut(BaseModel):
     recorded_at: datetime
 
 
-# --- Overview ---------------------------------------------------------------
-
-
 class CellOut(BaseModel):
     certification_id: int
     required: bool
@@ -241,9 +223,6 @@ class MemberDetailOut(BaseModel):
     member: MemberOut
     cells: list[CellOut]
     history: list[CompletionOut]
-
-
-# --- Audit ------------------------------------------------------------------
 
 
 class AuditEntryOut(ORMModel):

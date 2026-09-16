@@ -2,7 +2,7 @@ import type { TokenResponse } from "./types";
 
 let accessToken: string | null = null;
 let refreshing: Promise<boolean> | null = null;
-let onAuthLost: () => void = () => {};
+let onAuthLost: (() => void) | null = null;
 
 export class ApiError extends Error {
   constructor(
@@ -45,18 +45,13 @@ async function raw(path: string, init: RequestInit = {}, retry = true): Promise<
   if (res.status === 401 && retry && !path.startsWith("/api/auth/")) {
     if (await refreshAccessToken()) return raw(path, init, false);
     accessToken = null;
-    onAuthLost();
+    onAuthLost?.();
   }
   if (!res.ok) {
-    let detail = res.statusText;
-    try {
-      const body = (await res.json()) as { detail?: unknown };
-      if (typeof body.detail === "string") detail = body.detail;
-      else if (Array.isArray(body.detail)) detail = "Eingaben unvollständig oder ungültig";
-    } catch {
-      /* no JSON body */
-    }
-    throw new ApiError(res.status, detail);
+    const body = (await res.json().catch(() => ({}))) as { detail?: unknown };
+    if (typeof body.detail === "string") throw new ApiError(res.status, body.detail);
+    if (Array.isArray(body.detail)) throw new ApiError(res.status, "Eingaben unvollständig oder ungültig");
+    throw new ApiError(res.status, res.statusText);
   }
   return res;
 }
@@ -82,25 +77,42 @@ export async function download(path: string): Promise<void> {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+const GONE = "Nicht mehr vorhanden. Lade die Seite neu, vielleicht wurde es inzwischen gelöscht.";
+const STALE = "Die Seite ist nicht mehr aktuell. Lade sie neu und versuche es noch einmal.";
+
+export const ERROR_TEXT: Readonly<Record<string, string>> = {
+  "Invalid credentials": "E-Mail, Passwort oder Code stimmen nicht.",
+  "Not authenticated": "Du bist nicht mehr angemeldet.",
+  "Admin role required": "Dafür brauchst du Admin-Rechte.",
+  "Number already in use": "Diese Nr ist schon vergeben.",
+  "Name already in use": "Dieser Name ist schon vergeben.",
+  "E-mail already in use": "Diese E-Mail ist schon vergeben.",
+  "Current password is wrong": "Das aktuelle Passwort stimmt nicht.",
+  "Invalid code": "Der Code stimmt nicht. Prüfe die Uhrzeit auf dem Handy.",
+  "Invalid password or code": "Passwort oder Code stimmen nicht.",
+  "Invalid or expired token": "Der Link ist abgelaufen oder wurde schon benutzt.",
+  "This certification requires an expiry date": "Für diesen Nachweis muss ein Ablaufdatum angegeben werden.",
+  "Date lies in the future": "Das Datum liegt in der Zukunft.",
+  "The last active admin cannot be removed": "Der letzte aktive Admin kann nicht entfernt werden.",
+  "Certification has completions – deactivate it instead":
+    "Für diesen Nachweis gibt es Einträge. Deaktiviere ihn stattdessen.",
+  "Only the recording user or an admin may delete": "Nur wer den Eintrag angelegt hat oder ein Admin darf ihn löschen.",
+  "User is deactivated": "Der Benutzer ist gesperrt. Entsperre ihn zuerst.",
+  "2FA already enabled": "Zwei-Faktor ist bereits eingeschaltet.",
+  "2FA not enabled": "Zwei-Faktor ist nicht eingeschaltet.",
+  "Run setup first": "Richte Zwei-Faktor zuerst ein.",
+  "Certification not found": GONE,
+  "Completion not found": GONE,
+  "Member not found": GONE,
+  "Position not found": GONE,
+  "User not found": GONE,
+  "Unknown certification id": STALE,
+  "Unknown member id": STALE,
+  "Unknown position id": STALE,
+};
+
 /** Maps backend error messages (English) to user-facing German text. */
 export function errorText(e: unknown): string {
   if (!(e instanceof ApiError)) return "Keine Verbindung zum Server.";
-  const known: Record<string, string> = {
-    "Invalid credentials": "E-Mail, Passwort oder Code stimmen nicht.",
-    "Number already in use": "Diese Nr ist schon vergeben.",
-    "Name already in use": "Dieser Name ist schon vergeben.",
-    "E-mail already in use": "Diese E-Mail ist schon vergeben.",
-    "Current password is wrong": "Das aktuelle Passwort stimmt nicht.",
-    "Invalid code": "Der Code stimmt nicht. Prüfe die Uhrzeit auf dem Handy.",
-    "Invalid password or code": "Passwort oder Code stimmen nicht.",
-    "Invalid or expired token": "Der Link ist abgelaufen oder wurde schon benutzt.",
-    "This certification requires an expiry date": "Für diesen Nachweis muss ein Ablaufdatum angegeben werden.",
-    "Date lies in the future": "Das Datum liegt in der Zukunft.",
-    "The last active admin cannot be removed": "Der letzte aktive Admin kann nicht entfernt werden.",
-    "Certification has completions – deactivate it instead":
-      "Für diesen Nachweis gibt es Einträge. Deaktiviere ihn stattdessen.",
-    "Only the recording user or an admin may delete":
-      "Nur wer den Eintrag angelegt hat oder ein Admin darf ihn löschen.",
-  };
-  return known[e.message] ?? e.message;
+  return ERROR_TEXT[e.message] ?? e.message;
 }

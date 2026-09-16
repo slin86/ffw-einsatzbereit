@@ -82,7 +82,9 @@ function validityText(c: Certification): string {
       <h1>Nachweise</h1>
       <button @click="open()">Nachweis anlegen</button>
     </div>
-    <p class="lede">Seminare, Übungen, Tests und Weiterbildungen. Welche davon ein Kamerad braucht, legst du über die Funktionen fest.</p>
+    <p class="lede">
+      Seminare, Übungen, Tests und Weiterbildungen. Welche davon ein Kamerad braucht, legst du über die Funktionen fest.
+    </p>
     <p v-if="listError" class="error">{{ listError }}</p>
 
     <div class="table-wrap">

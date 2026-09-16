@@ -37,10 +37,11 @@ npm run dev                                # http://localhost:5173
 Demo login after seeding: `admin@example.org` / `admin-password`.
 Without SMTP settings, password reset links are written to the backend log.
 
-Frontend unit tests (filter, date and sorting logic, change-log texts):
+Tests and coverage:
 
 ```bash
-cd frontend && npm test
+cd backend && uv run pytest -q --cov      # minimum 95 % branch coverage
+cd frontend && npm run coverage           # minimum 95 % lines, 90 % branches (logic modules)
 ```
 
 Run the backend test suite against PostgreSQL instead of SQLite:
@@ -57,17 +58,34 @@ CI runs the tests on both databases and checks that `alembic upgrade head`, `ale
 
 1. Push to `main` – GitHub Actions runs the checks and pushes
    `ghcr.io/slin86/einsatzbereit:{latest,<sha>}`.
-2. Create the secrets in Infisical under `/einsatzbereit` (keys listed in
-   `deploy/base/infisical-secret.yaml`). Generate the JWT secret with
-   `openssl rand -base64 48`.
+2. Create the secrets in Infisical under `/einsatzbereit`. They are synced into the Secret
+   `einsatzbereit-secrets` (plain Opaque, therefore without `secretType`):
+
+   | Key | Value |
+   |---|---|
+   | `EB_JWT_SECRET` | `openssl rand -base64 48`; the app refuses to start with the dev default |
+   | `POSTGRES_PASSWORD` | random |
+   | `EB_DATABASE_URL` | `postgresql+psycopg://einsatzbereit:<POSTGRES_PASSWORD>@postgres:5432/einsatzbereit` |
+   | `EB_INITIAL_ADMIN_EMAIL`, `EB_INITIAL_ADMIN_PASSWORD` | first admin |
+   | `EB_SMTP_HOST`, `EB_SMTP_PORT`, `EB_SMTP_USERNAME`, `EB_SMTP_PASSWORD`, `EB_SMTP_FROM` | mail relay for password resets; empty host logs the link instead |
+
 3. Replace all `CHANGE-ME` values in `deploy/base/infisical-secret.yaml`.
 4. Copy `deploy/` into `slin86/argocd` (or point an ArgoCD Application at
    `deploy/overlays/public`) and pin `newTag` to a commit SHA.
-5. The app runs migrations on start and creates the first admin from
+5. The app refuses to start if `EB_JWT_SECRET` is still the development default. It runs
+   migrations on start and creates the first admin from
    `EB_INITIAL_ADMIN_*` if the user table is empty. Remove the password from Infisical
    afterwards and change it in the app.
 
-Public URL: `https://einsatzbereit.slin.io`.
+Public URL: `https://einsatzbereit.slin.io`, exposed through Traefik with the existing
+`*.slin.io` wildcard certificate.
+
+Design decisions in `deploy/`:
+
+- PostgreSQL uses `local-path` storage on the NUC: Postgres on NFS is fragile and the NAS
+  disks use deep sleep. Backups go to the NAS once per night via `backup-cronjob.yaml`.
+- The app runs as a single replica with `Recreate` strategy, because migrations run on
+  container start.
 
 ## Notes
 

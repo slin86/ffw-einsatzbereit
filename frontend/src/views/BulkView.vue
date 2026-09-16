@@ -49,10 +49,7 @@ const rows = computed(() => {
     .map((r) => ({ member: r.member, cell: r.cells[0] }))
     .filter((r) => r.cell !== undefined)
     .filter((r) => !onlyRequired.value || r.cell!.required || selected.value.has(r.member.id))
-    .filter(
-      (r) =>
-        !q || `${r.member.number} ${r.member.last_name} ${r.member.first_name}`.toLowerCase().includes(q),
-    );
+    .filter((r) => !q || `${r.member.number} ${r.member.last_name} ${r.member.first_name}`.toLowerCase().includes(q));
 });
 
 const allVisibleSelected = computed(

@@ -3,7 +3,6 @@
 from fastapi import APIRouter, HTTPException, status
 
 from einsatzbereit.deps import CurrentUser, DbSession
-from einsatzbereit.routers.auth import revoke_all_sessions
 from einsatzbereit.schemas import (
     PasswordChange,
     TotpCode,
@@ -18,6 +17,7 @@ from einsatzbereit.security import (
     verify_password,
     verify_totp,
 )
+from einsatzbereit.services.accounts import revoke_all_sessions
 
 router = APIRouter(prefix="/api/me", tags=["me"])
 

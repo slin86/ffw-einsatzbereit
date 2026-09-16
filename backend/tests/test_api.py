@@ -74,7 +74,6 @@ def test_overview_flow(
     client: TestClient, admin_headers: dict[str, str], user_headers: dict[str, str]
 ) -> None:
     ids = _setup(client, admin_headers)
-    # Users may maintain members
     anna = client.post(
         "/api/members",
         headers=user_headers,
@@ -105,7 +104,6 @@ def test_overview_flow(
     )
 
     today = date.today()
-    # Anna: AGT test expiring soon (done ~11.5 months ago), Unterweisung valid
     almost = add_months(today, -12) + timedelta(days=20)
     for cert, done in ((ids["agt_test"], almost), (ids["unterweisung"], today)):
         r = client.post(
@@ -114,7 +112,6 @@ def test_overview_flow(
             json={"member_id": anna, "certification_id": cert, "completed_on": done.isoformat()},
         )
         assert r.status_code == 201, r.text
-    # Ben: all valid
     client.post(
         "/api/completions",
         headers=user_headers,
@@ -142,7 +139,6 @@ def test_overview_flow(
     by_pos = client.get(f"/api/overview?position_id={ids['agt']}", headers=user_headers).json()
     assert [r["member"]["id"] for r in by_pos["rows"]] == [anna]
 
-    # History is kept, latest completion wins
     client.post(
         "/api/completions",
         headers=user_headers,
@@ -157,7 +153,6 @@ def test_overview_flow(
     assert all(c["status"] == "valid" for c in detail["cells"])
     assert detail["history"][0]["recorded_by"] == "Anwender"
 
-    # Deactivated members disappear unless requested
     client.put(
         f"/api/members/{ben}",
         headers=user_headers,
@@ -212,11 +207,9 @@ def test_completion_rules(
         json={**base, "completed_on": today, "manual_expires_on": "2030-01-01"},
     )
     assert r.json()["expires_on"] == "2030-01-01"
-    # a user cannot delete an admin's entry, admin can
     cid = r.json()["id"]
     assert client.delete(f"/api/completions/{cid}", headers=user_headers).status_code == 403
     assert client.delete(f"/api/completions/{cid}", headers=admin_headers).status_code == 204
-    # certification with no completions left can be deleted
     assert client.delete(f"/api/certifications/{manual}", headers=admin_headers).status_code == 204
 
 
@@ -269,7 +262,6 @@ def test_bulk_completions(
     }
     r = client.post("/api/completions/bulk", headers=user_headers, json=body)
     assert r.status_code == 201 and r.json() == {"created": 3}
-    # submitting again is idempotent for the same date
     r = client.post(
         "/api/completions/bulk", headers=user_headers, json={**body, "member_ids": members}
     )
@@ -286,7 +278,6 @@ def test_bulk_completions(
         == "Anwender"
     )
 
-    # validation
     assert (
         client.post(
             "/api/completions/bulk", headers=user_headers, json={**body, "member_ids": [9999]}

@@ -1,15 +1,15 @@
 """User administration (admins only)."""
 
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from einsatzbereit.deps import AdminUser, DbSession
 from einsatzbereit.models import User, UserRole
-from einsatzbereit.routers.auth import request_password_reset, revoke_all_sessions
-from einsatzbereit.schemas import PasswordResetRequest, UserCreate, UserOut, UserUpdate
+from einsatzbereit.schemas import UserCreate, UserOut, UserUpdate
 from einsatzbereit.security import hash_password
 from einsatzbereit.services import audit
+from einsatzbereit.services.accounts import revoke_all_sessions, send_password_reset
 from einsatzbereit.services.audit import Action, EntityType
 
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -23,11 +23,8 @@ def _get(db: DbSession, user_id: int) -> User:
 
 
 def _active_admin_count(db: DbSession) -> int:
-    return len(
-        db.scalars(
-            select(User.id).where(User.role == UserRole.ADMIN, User.is_active.is_(True))
-        ).all()
-    )
+    stmt = select(func.count()).where(User.role == UserRole.ADMIN, User.is_active.is_(True))
+    return db.scalar(stmt) or 0
 
 
 @router.get("", response_model=list[UserOut])
@@ -115,4 +112,6 @@ def reset_totp(user_id: int, admin: AdminUser, db: DbSession) -> User:
 @router.post("/{user_id}/send-password-reset", status_code=status.HTTP_202_ACCEPTED)
 def send_reset(user_id: int, _: AdminUser, db: DbSession) -> None:
     user = _get(db, user_id)
-    request_password_reset(PasswordResetRequest(email=user.email), db)
+    if not user.is_active:
+        raise HTTPException(status.HTTP_409_CONFLICT, "User is deactivated")
+    send_password_reset(db, user)

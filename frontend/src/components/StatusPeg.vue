@@ -43,7 +43,6 @@ const tooltip = computed(() => `${props.title ?? props.label}: ${STATUS_LABEL[pr
   background: var(--bad);
   color: #fff;
 }
-/* Missing = empty socket: same red, but hollow, so it reads differently from "expired". */
 .missing {
   background: var(--bad-soft);
   border-color: var(--bad);

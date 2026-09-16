@@ -51,7 +51,7 @@ cd backend
 uv sync
 uv run ruff check . && uv run ruff format --check .
 uv run mypy src tests
-uv run pytest -q
+uv run pytest -q --cov        # fails below 95 % branch coverage
 EB_TEST_DATABASE_URL=postgresql+psycopg://…/eb_test uv run pytest -q   # same suite on Postgres
 uv run alembic revision --autogenerate -m "..."   # needs EB_DATABASE_URL
 uv run python -m einsatzbereit.seed               # demo data (50 members)
@@ -61,14 +61,22 @@ cd frontend
 npm ci
 npm run dev        # proxies /api to :8000
 npm test           # Vitest unit tests (TZ=Europe/Berlin)
-npm run build      # includes vue-tsc type check (also of the tests)
+npm run coverage   # fails below 95 % lines/functions, 90 % branches
+npm run lint       # Prettier check + vue-tsc
+npm run format     # Prettier write
+npm run build      # vue-tsc + Vite build
 ```
 
-All backend checks, the frontend tests and the frontend build must pass before a change is done.
+All backend checks (including coverage), the frontend lint, coverage and build must pass
+before a change is done.
 
 ## Conventions
 
-- Code, comments, docstrings, commit messages, README: **English**.
+- Code, docstrings, commit messages, README: **English**.
+- **No code comments.** The only allowed comments are `TODO` markers and tool directives
+  (`# noqa: …`). Explain *why* in docstrings/JSDoc (`/** … */`), in names, or in the README.
+  Do not add explanatory `#`, `//`, `/* */` or `<!-- -->` comments.
+- Frontend code is formatted with Prettier (print width 120). Python with ruff format.
 - All user-facing text (UI, export files, mails): **German**. Use „du“, sentence case,
   active verbs („Abschluss eintragen“, not „Absenden“).
 - API error `detail` strings are English; the frontend maps them to German in `api.ts:errorText`.
@@ -90,7 +98,14 @@ All backend checks, the frontend tests and the frontend build must pass before a
   endpoint without an audit call is a bug. `member_id` is set for member and completion
   entries so the member page can show them.
 - **Frontend logic** that is not pure presentation lives in plain TS modules
-  (`filter.ts`, `labels.ts`, `todo.ts`, `auditText.ts`) with a `*.test.ts` next to it.
+  (`api.ts`, `session.ts`, `guard.ts`, `filter.ts`, `labels.ts`, `todo.ts`, `auditText.ts`)
+  with a `*.test.ts` next to it. Coverage is measured for these modules; Vue components
+  are not unit-tested.
+- Every backend error `detail` needs a German text in `api.ts:ERROR_TEXT`;
+  `tests/test_translations.py` enforces this in both directions.
+- Update endpoints load related rows (positions, certifications) **before** mutating the
+  entity. Otherwise SQLAlchemy autoflush writes the half-changed row early and a unique
+  violation surfaces as HTTP 500 instead of 409.
   Views stay thin. New field names in audit snapshots need a German label in
   `auditText.ts:FIELD_LABEL`.
 - Filter parameters are shared by `/api/overview` and `/api/exports/{fmt}`

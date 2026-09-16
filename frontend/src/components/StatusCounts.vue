@@ -12,12 +12,7 @@ const total = computed(() => order.reduce((sum, s) => sum + props.counts[s], 0))
 <template>
   <div v-if="total > 0" class="counts">
     <div class="bar" role="img" :aria-label="order.map((s) => `${STATUS_LABEL[s]}: ${counts[s]}`).join(', ')">
-      <span
-        v-for="s in order"
-        :key="s"
-        :class="s"
-        :style="{ flexGrow: counts[s] }"
-      ></span>
+      <span v-for="s in order" :key="s" :class="s" :style="{ flexGrow: counts[s] }"></span>
     </div>
     <ul class="legend">
       <li v-for="s in order" :key="s">

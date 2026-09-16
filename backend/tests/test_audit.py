@@ -39,7 +39,6 @@ def test_member_and_completion_changes_are_logged(
         json={"number": "7", "last_name": "Voß", "first_name": "Ida", "position_ids": [pos]},
     ).json()["id"]
 
-    # no-op update creates no entry
     same = {"number": "7", "last_name": "Voß", "first_name": "Ida", "position_ids": [pos]}
     client.put(f"/api/members/{member}", headers=user_headers, json=same)
     client.put(
@@ -133,7 +132,6 @@ def test_catalog_and_user_changes_are_logged(
     assert entries[0]["changes"] == {"role": ["user", "admin"]}
     assert entries[4]["changes"] == {"certifications": [[], ["UVV"]]}
     assert entries[6]["changes"] == {"warn_days": [60, 30]}
-    # secrets never end up in the log
     assert set(entries[1]["changes"]) == {
         "email",
         "display_name",

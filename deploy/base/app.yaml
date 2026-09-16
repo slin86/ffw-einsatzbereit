@@ -14,7 +14,6 @@ kind: Deployment
 metadata:
   name: einsatzbereit
 spec:
-  # Keep a single replica: migrations run on container start and login lockout is per DB row.
   replicas: 1
   strategy:
     type: Recreate

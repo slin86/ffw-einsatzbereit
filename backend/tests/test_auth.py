@@ -17,7 +17,6 @@ def test_login_refresh_logout(client: TestClient) -> None:
     assert r.status_code == 200 and r.json()["access_token"]
     assert client.cookies.get("eb_refresh") != old
 
-    # Reusing the rotated token revokes the whole family
     new = client.cookies.get("eb_refresh")
     client.cookies.set("eb_refresh", old or "", path="/api/auth")
     assert client.post("/api/auth/refresh").status_code == 401
@@ -61,7 +60,6 @@ def test_totp_flow(client: TestClient) -> None:
         "/api/auth/login/mfa", json={"mfa_token": r["mfa_token"], "code": pyotp.TOTP(secret).now()}
     )
     assert ok.status_code == 200 and ok.json()["access_token"]
-    # mfa token is not an access token
     assert (
         client.get("/api/me", headers={"Authorization": f"Bearer {r['mfa_token']}"}).status_code
         == 401
@@ -88,7 +86,6 @@ def test_password_reset(client: TestClient, caplog: pytest.LogCaptureFixture) ->
         json={"token": token, "new_password": "brand-new-password"},
     )
     assert r.status_code == 204
-    # old sessions are invalidated, token is single-use
     assert client.get("/api/me", headers=old_headers).status_code == 401
     assert (
         client.post(

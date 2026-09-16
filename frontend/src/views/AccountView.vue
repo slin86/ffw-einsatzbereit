@@ -23,7 +23,6 @@ async function changePassword(): Promise<void> {
   pwError.value = "";
   try {
     await api("/api/me/password", "POST", pw.value);
-    // All sessions were revoked, including this one.
     await logout();
     await router.push({ path: "/login" });
   } catch (e) {
@@ -95,16 +94,25 @@ async function doLogout(): Promise<void> {
       <template v-if="session.user?.totp_enabled">
         <p class="notice">Aktiv. Bei der Anmeldung wird ein Code aus deiner Authenticator-App abgefragt.</p>
         <form class="form" @submit.prevent="disable">
-          <label>Passwort <input v-model="disablePassword" type="password" autocomplete="current-password" required /></label>
-          <label>Aktueller Code <input v-model="code" inputmode="numeric" autocomplete="one-time-code" required /></label>
+          <label
+            >Passwort <input v-model="disablePassword" type="password" autocomplete="current-password" required
+          /></label>
+          <label
+            >Aktueller Code <input v-model="code" inputmode="numeric" autocomplete="one-time-code" required
+          /></label>
           <p v-if="totpError" class="error">{{ totpError }}</p>
           <button type="submit" class="danger">Zwei-Faktor ausschalten</button>
         </form>
       </template>
       <template v-else-if="setup">
-        <p>Scanne den Code mit einer Authenticator-App (z. B. Aegis, 2FAS, Google Authenticator) und gib den angezeigten Code ein.</p>
+        <p>
+          Scanne den Code mit einer Authenticator-App (z. B. Aegis, 2FAS, Google Authenticator) und gib den angezeigten
+          Code ein.
+        </p>
         <img :src="setup.qr" alt="QR-Code für die Authenticator-App" width="220" height="220" class="qr" />
-        <p class="small muted">Manuelle Eingabe: <code>{{ setup.secret }}</code></p>
+        <p class="small muted">
+          Manuelle Eingabe: <code>{{ setup.secret }}</code>
+        </p>
         <form class="form" @submit.prevent="enable">
           <label>Code <input v-model="code" inputmode="numeric" autocomplete="one-time-code" required /></label>
           <p v-if="totpError" class="error">{{ totpError }}</p>
@@ -121,7 +129,10 @@ async function doLogout(): Promise<void> {
     <section>
       <h2>Passwort ändern</h2>
       <form class="form" @submit.prevent="changePassword">
-        <label>Aktuelles Passwort <input v-model="pw.current_password" type="password" autocomplete="current-password" required /></label>
+        <label
+          >Aktuelles Passwort
+          <input v-model="pw.current_password" type="password" autocomplete="current-password" required
+        /></label>
         <label>
           Neues Passwort (mind. 10 Zeichen)
           <input v-model="pw.new_password" type="password" autocomplete="new-password" minlength="10" required />

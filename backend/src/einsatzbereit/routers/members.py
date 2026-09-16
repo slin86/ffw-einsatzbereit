@@ -8,7 +8,15 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from einsatzbereit.deps import CurrentUser, DbSession
-from einsatzbereit.models import Certification, Completion, Member, Position, UserRole, ValidityMode
+from einsatzbereit.models import (
+    Certification,
+    Completion,
+    Member,
+    Position,
+    User,
+    UserRole,
+    ValidityMode,
+)
 from einsatzbereit.schemas import (
     BulkCompletionIn,
     BulkCompletionOut,
@@ -103,12 +111,13 @@ def create_member(body: MemberIn, user: CurrentUser, db: DbSession) -> Member:
 @router.put("/members/{member_id}", response_model=MemberOut)
 def update_member(member_id: int, body: MemberIn, user: CurrentUser, db: DbSession) -> Member:
     member = _get_member(db, member_id)
+    positions = _load_positions(db, body.position_ids)
     before = audit.member_snapshot(member)
     member.number = body.number.strip()
     member.last_name = body.last_name.strip()
     member.first_name = body.first_name.strip()
     member.is_active = body.is_active
-    member.positions = _load_positions(db, body.position_ids)
+    member.positions = positions
     _flush(db)
     audit.record(
         db,
@@ -177,7 +186,7 @@ def create_completion(body: CompletionIn, user: CurrentUser, db: DbSession) -> C
     return completion_out(completion)
 
 
-def _audit_completion(db: DbSession, user: CurrentUser, c: Completion, action: Action) -> None:
+def _audit_completion(db: DbSession, user: User, c: Completion, action: Action) -> None:
     snapshot = audit.completion_snapshot(c)
     audit.record(
         db,

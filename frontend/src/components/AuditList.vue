@@ -19,9 +19,7 @@ async function fetchPage(beforeId: number | null): Promise<void> {
   error.value = "";
   try {
     const sep = props.source.includes("?") ? "&" : "?";
-    const page = await api<AuditPage>(
-      beforeId === null ? props.source : `${props.source}${sep}before_id=${beforeId}`,
-    );
+    const page = await api<AuditPage>(beforeId === null ? props.source : `${props.source}${sep}before_id=${beforeId}`);
     entries.value = beforeId === null ? page.entries : [...entries.value, ...page.entries];
     nextBefore.value = page.next_before_id;
   } catch (e) {
@@ -31,7 +29,11 @@ async function fetchPage(beforeId: number | null): Promise<void> {
   }
 }
 
-watch(() => props.source, () => fetchPage(null), { immediate: true });
+watch(
+  () => props.source,
+  () => fetchPage(null),
+  { immediate: true },
+);
 
 defineExpose({ reload: () => fetchPage(null) });
 </script>

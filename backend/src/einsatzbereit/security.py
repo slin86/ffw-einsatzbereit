@@ -34,8 +34,7 @@ def now_utc() -> datetime:
 
 def create_jwt(user_id: int, token_type: TokenType, token_version: int) -> str:
     s = get_settings()
-    is_access = token_type == "access"  # noqa: S105
-    minutes = s.access_token_minutes if is_access else s.mfa_token_minutes
+    minutes = {"access": s.access_token_minutes, "mfa": s.mfa_token_minutes}[token_type]
     now = now_utc()
     payload: dict[str, Any] = {
         "sub": str(user_id),

@@ -47,8 +47,7 @@ async function act(fn: () => Promise<unknown>, msg = ""): Promise<void> {
 }
 
 const setRole = (u: User, role: Role) => act(() => api(`/api/users/${u.id}`, "PATCH", { role }));
-const setActive = (u: User, is_active: boolean) =>
-  act(() => api(`/api/users/${u.id}`, "PATCH", { is_active }));
+const setActive = (u: User, is_active: boolean) => act(() => api(`/api/users/${u.id}`, "PATCH", { is_active }));
 const reset2fa = (u: User) =>
   confirm(`Zwei-Faktor für ${u.display_name} zurücksetzen?`) &&
   act(() => api(`/api/users/${u.id}/reset-2fa`, "POST"), "Zwei-Faktor zurückgesetzt.");
@@ -63,8 +62,8 @@ const sendReset = (u: User) =>
       <button @click="open()">Benutzer anlegen</button>
     </div>
     <p class="lede">
-      Benutzer melden sich an und pflegen Kameraden und Abschlüsse. Admins verwalten zusätzlich
-      Nachweise, Funktionen und Benutzer. Kameraden selbst brauchen kein Konto.
+      Benutzer melden sich an und pflegen Kameraden und Abschlüsse. Admins verwalten zusätzlich Nachweise, Funktionen
+      und Benutzer. Kameraden selbst brauchen kein Konto.
     </p>
     <p v-if="listError" class="error">{{ listError }}</p>
     <p v-if="notice" class="notice">{{ notice }}</p>

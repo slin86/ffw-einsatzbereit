@@ -30,9 +30,7 @@ watch(includeInactive, load, { immediate: true });
 const filtered = computed(() => {
   const q = search.value.trim().toLowerCase();
   if (!q) return members.value;
-  return members.value.filter((m) =>
-    `${m.number} ${m.last_name} ${m.first_name}`.toLowerCase().includes(q),
-  );
+  return members.value.filter((m) => `${m.number} ${m.last_name} ${m.first_name}`.toLowerCase().includes(q));
 });
 
 function onSaved(m: Member): void {

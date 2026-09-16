@@ -30,7 +30,7 @@ describe("parseFilter", () => {
       q: "Voß",
       position_id: 3,
       certification_id: 12,
-      status: ["missing", "expired"], // canonical order, not URL order
+      status: ["missing", "expired"],
       include_inactive: true,
       only_open: true,
     });
@@ -52,7 +52,7 @@ describe("parseFilter", () => {
     expect(f.certification_id).toBeNull();
     expect(f.status).toEqual(["expiring"]);
     expect(f.include_inactive).toBe(false);
-    expect(f.only_open).toBe(true); // first value wins for repeated flags
+    expect(f.only_open).toBe(true);
   });
 
   it("does not trim the search while typing", () => {
@@ -83,5 +83,41 @@ describe("serialisation", () => {
       only_open: true,
     };
     expect(parseFilter(filterToQuery(f))).toEqual(f);
+  });
+});
+
+describe("useMatrixFilter", () => {
+  async function setup(path: string) {
+    const { createApp, defineComponent } = await import("vue");
+    const { createMemoryHistory, createRouter } = await import("vue-router");
+    const { useMatrixFilter } = await import("./filter");
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: "/uebersicht", component: defineComponent({ render: () => null }) }],
+    });
+    const app = createApp({ render: () => null });
+    app.use(router);
+    await router.push(path);
+    await router.isReady();
+    const state = app.runWithContext(() => useMatrixFilter());
+    return { router, state };
+  }
+
+  it("reads the filter from the current route", async () => {
+    const { state } = await setup("/uebersicht?only_open=true&status=expired");
+    expect(state.filter.value.only_open).toBe(true);
+    expect(state.queryString.value).toBe("status=expired&only_open=true");
+  });
+
+  it("updates and resets the URL", async () => {
+    const { router, state } = await setup("/uebersicht?q=Anna");
+    state.update({ position_id: 4 });
+    await new Promise((r) => setTimeout(r));
+    expect(router.currentRoute.value.query).toEqual({ q: "Anna", position_id: "4" });
+    expect(state.filter.value.position_id).toBe(4);
+    state.reset();
+    await new Promise((r) => setTimeout(r));
+    expect(router.currentRoute.value.query).toEqual({});
+    expect(state.queryString.value).toBe("");
   });
 });

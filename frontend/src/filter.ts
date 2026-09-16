@@ -12,6 +12,15 @@ export interface MatrixFilter {
   only_open: boolean;
 }
 
+export const EMPTY_FILTER: Readonly<MatrixFilter> = {
+  q: "",
+  position_id: null,
+  certification_id: null,
+  status: [],
+  include_inactive: false,
+  only_open: false,
+};
+
 const STATUSES: readonly CellStatus[] = ["missing", "expired", "expiring", "valid", "not_required"];
 
 function first(value: LocationQuery[string]): string | null {

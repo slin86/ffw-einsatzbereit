@@ -22,7 +22,6 @@ from einsatzbereit.models import (
 from einsatzbereit.security import hash_password
 
 CERTS = [
-    # name, short, kind, mode, months, warn
     (
         "Belastungsübung Atemschutz",
         "AGT-Ü",
@@ -124,7 +123,7 @@ LAST = [
 
 def main() -> None:
     Base.metadata.create_all(get_engine())
-    rnd = random.Random(112)  # noqa: S311 - demo data only
+    rnd = random.Random(112)  # noqa: S311
     today = date.today()
     with get_sessionmaker()() as db:
         if db.scalar(select(func.count()).select_from(Member)):
@@ -177,7 +176,7 @@ def main() -> None:
             for cert in {c for p in pos for c in p.certifications}:
                 roll = rnd.random()
                 if roll < 0.08:
-                    continue  # missing
+                    continue
                 age = rnd.randint(0, 420) if roll < 0.9 else rnd.randint(330, 800)
                 done = today - timedelta(days=age)
                 manual = (

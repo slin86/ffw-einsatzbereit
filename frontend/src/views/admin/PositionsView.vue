@@ -54,8 +54,8 @@ async function remove(item: Position): Promise<void> {
       <button @click="open()">Funktion anlegen</button>
     </div>
     <p class="lede">
-      Eine Funktion (z. B. AGT, Maschinist) bestimmt, welche Nachweise ein Kamerad braucht.
-      Für alle geltende Nachweise legst du am besten eine Funktion „Grundausbildung“ an.
+      Eine Funktion (z. B. AGT, Maschinist) bestimmt, welche Nachweise ein Kamerad braucht. Für alle geltende Nachweise
+      legst du am besten eine Funktion „Grundausbildung“ an.
     </p>
 
     <ul class="list">

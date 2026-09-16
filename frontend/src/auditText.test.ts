@@ -50,3 +50,26 @@ describe("changeLines", () => {
     expect(changeLines({ action: "create", changes: { foo: 1 } })[0]!.text).toBe("foo: 1");
   });
 });
+
+describe("robustness against unexpected log data", () => {
+  it("falls back to raw names for unknown entities and actions", () => {
+    const e = { entity_type: "vehicle", action: "archive" } as unknown as Parameters<typeof actionText>[0];
+    expect(actionText(e)).toBe("vehicle archive");
+    const known = { entity_type: "member", action: "archive" } as unknown as Parameters<typeof actionText>[0];
+    expect(actionText(known)).toBe("member archive");
+  });
+
+  it("keeps unknown enum values", () => {
+    expect(formatValue("validity_mode", "weekly")).toBe("weekly");
+    expect(formatValue("role", "guest")).toBe("guest");
+    expect(formatValue("note", "2026-13")).toBe("2026-13");
+    expect(formatValue("x", { a: 1 })).toBe("[object Object]");
+  });
+
+  it("handles malformed update values and empty lists", () => {
+    expect(changeLines({ action: "update", changes: { note: "flat" } })[0]!.text).toBe("Bemerkung: flat");
+    expect(changeLines({ action: "create", changes: { positions: [], name: "AGT" } })).toEqual([
+      { field: "name", text: "Name: AGT" },
+    ]);
+  });
+});

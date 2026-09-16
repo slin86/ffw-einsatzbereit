@@ -21,9 +21,6 @@ def _flush(db: DbSession) -> None:
         raise HTTPException(status.HTTP_409_CONFLICT, "Name already in use") from exc
 
 
-# --- Certifications ---------------------------------------------------------
-
-
 def _get_cert(db: DbSession, cert_id: int) -> Certification:
     cert = db.get(Certification, cert_id)
     if cert is None:
@@ -101,9 +98,6 @@ def delete_certification(cert_id: int, admin: AdminUser, db: DbSession) -> None:
     db.commit()
 
 
-# --- Positions --------------------------------------------------------------
-
-
 def _get_position(db: DbSession, position_id: int) -> Position:
     pos = db.get(Position, position_id)
     if pos is None:
@@ -150,10 +144,11 @@ def update_position(
     position_id: int, body: PositionIn, admin: AdminUser, db: DbSession
 ) -> Position:
     pos = _get_position(db, position_id)
+    certifications = _load_certs(db, body.certification_ids)
     before = audit.position_snapshot(pos)
     pos.name = body.name
     pos.description = body.description
-    pos.certifications = _load_certs(db, body.certification_ids)
+    pos.certifications = certifications
     _flush(db)
     audit.record(
         db,

@@ -58,8 +58,8 @@ def test_manual_and_unlimited() -> None:
     ("today", "expected"),
     [
         (date(2026, 12, 1), CellStatus.VALID),
-        (date(2027, 2, 7), CellStatus.EXPIRING),  # exactly 30 days before 2027-03-09
-        (date(2027, 3, 9), CellStatus.EXPIRING),  # last valid day
+        (date(2027, 2, 7), CellStatus.EXPIRING),
+        (date(2027, 3, 9), CellStatus.EXPIRING),
         (date(2027, 3, 10), CellStatus.EXPIRED),
     ],
 )

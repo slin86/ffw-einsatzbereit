@@ -62,66 +62,66 @@ function toNum(v: string): number | null {
       <span aria-hidden="true">{{ expanded ? "▴" : "▾" }}</span>
     </button>
     <div id="filter-body" class="body" :class="{ open: expanded }">
-    <div class="form-grid">
-      <label>
-        Suche
-        <input v-model="search" type="search" placeholder="Name oder Nr" autocomplete="off" />
-      </label>
-      <label>
-        Funktion
-        <select
-          :value="filter.position_id ?? ''"
-          @change="emit('update', { position_id: toNum(($event.target as HTMLSelectElement).value) })"
-        >
-          <option value="">Alle Funktionen</option>
-          <option v-for="p in positions" :key="p.id" :value="p.id">{{ p.name }}</option>
-        </select>
-      </label>
-      <label>
-        Nachweis
-        <select
-          :value="filter.certification_id ?? ''"
-          @change="emit('update', { certification_id: toNum(($event.target as HTMLSelectElement).value) })"
-        >
-          <option value="">Alle Nachweise</option>
-          <option v-for="c in certifications" :key="c.id" :value="c.id">{{ c.name }}</option>
-        </select>
-      </label>
-    </div>
+      <div class="form-grid">
+        <label>
+          Suche
+          <input v-model="search" type="search" placeholder="Name oder Nr" autocomplete="off" />
+        </label>
+        <label>
+          Funktion
+          <select
+            :value="filter.position_id ?? ''"
+            @change="emit('update', { position_id: toNum(($event.target as HTMLSelectElement).value) })"
+          >
+            <option value="">Alle Funktionen</option>
+            <option v-for="p in positions" :key="p.id" :value="p.id">{{ p.name }}</option>
+          </select>
+        </label>
+        <label>
+          Nachweis
+          <select
+            :value="filter.certification_id ?? ''"
+            @change="emit('update', { certification_id: toNum(($event.target as HTMLSelectElement).value) })"
+          >
+            <option value="">Alle Nachweise</option>
+            <option v-for="c in certifications" :key="c.id" :value="c.id">{{ c.name }}</option>
+          </select>
+        </label>
+      </div>
 
-    <div class="chips" role="group" aria-label="Status">
-      <button
-        v-for="s in statuses"
-        :key="s"
-        type="button"
-        class="chip"
-        :class="s"
-        :aria-pressed="filter.status.includes(s)"
-        @click="toggleStatus(s)"
-      >
-        {{ STATUS_LABEL[s] }}
-      </button>
-    </div>
+      <div class="chips" role="group" aria-label="Status">
+        <button
+          v-for="s in statuses"
+          :key="s"
+          type="button"
+          class="chip"
+          :class="s"
+          :aria-pressed="filter.status.includes(s)"
+          @click="toggleStatus(s)"
+        >
+          {{ STATUS_LABEL[s] }}
+        </button>
+      </div>
 
-    <div class="row toggles">
-      <label class="check">
-        <input
-          type="checkbox"
-          :checked="filter.only_open"
-          @change="emit('update', { only_open: ($event.target as HTMLInputElement).checked })"
-        />
-        Nur Kameraden mit offenen Nachweisen
-      </label>
-      <label class="check">
-        <input
-          type="checkbox"
-          :checked="filter.include_inactive"
-          @change="emit('update', { include_inactive: ($event.target as HTMLInputElement).checked })"
-        />
-        Inaktive einblenden
-      </label>
-      <button type="button" class="link" @click="emit('reset')">Filter zurücksetzen</button>
-    </div>
+      <div class="row toggles">
+        <label class="check">
+          <input
+            type="checkbox"
+            :checked="filter.only_open"
+            @change="emit('update', { only_open: ($event.target as HTMLInputElement).checked })"
+          />
+          Nur Kameraden mit offenen Nachweisen
+        </label>
+        <label class="check">
+          <input
+            type="checkbox"
+            :checked="filter.include_inactive"
+            @change="emit('update', { include_inactive: ($event.target as HTMLInputElement).checked })"
+          />
+          Inaktive einblenden
+        </label>
+        <button type="button" class="link" @click="emit('reset')">Filter zurücksetzen</button>
+      </div>
     </div>
   </div>
 </template>

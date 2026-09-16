@@ -1,6 +1,3 @@
-# Dedicated PostgreSQL for Einsatzbereit.
-# Storage is local-path on the NUC on purpose: Postgres on NFS is fragile, and the
-# NAS disks use deep sleep. Backups go to the NAS via the separate backup CronJob.
 apiVersion: v1
 kind: Service
 metadata:

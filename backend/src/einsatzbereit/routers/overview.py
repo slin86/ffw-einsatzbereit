@@ -22,7 +22,7 @@ router = APIRouter(prefix="/api", tags=["overview"])
 
 
 def matrix_filter(
-    status: Annotated[list[CellStatus], Query()] = [],  # noqa: B006
+    status: Annotated[list[CellStatus] | None, Query()] = None,
     position_id: int | None = None,
     certification_id: int | None = None,
     q: str = "",
@@ -30,7 +30,7 @@ def matrix_filter(
     only_open: bool = False,
 ) -> MatrixFilter:
     return MatrixFilter(
-        statuses=set(status),
+        statuses=set(status or ()),
         position_id=position_id,
         certification_id=certification_id,
         query=q,

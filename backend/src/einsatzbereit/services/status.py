@@ -81,7 +81,6 @@ def evaluate(
     else:
         status = CellStatus.VALID
     if not required and status != CellStatus.VALID:
-        # Certifications not required by any of the member's positions never create TODOs.
         status = CellStatus.NOT_REQUIRED
     return status, expires
 

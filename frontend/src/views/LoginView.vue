@@ -3,6 +3,7 @@ import { ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import { errorText } from "../api";
+import { safeNext } from "../guard";
 import { login, loginMfa } from "../session";
 
 const route = useRoute();
@@ -14,11 +15,6 @@ const mfaToken = ref<string | null>(null);
 const error = ref("");
 const busy = ref(false);
 
-function next(): string {
-  const n = route.query.next;
-  return typeof n === "string" && n.startsWith("/") && !n.startsWith("//") ? n : "/";
-}
-
 async function submit(): Promise<void> {
   busy.value = true;
   error.value = "";
@@ -29,7 +25,7 @@ async function submit(): Promise<void> {
       mfaToken.value = await login(email.value, password.value);
       if (mfaToken.value) return;
     }
-    await router.replace(next());
+    await router.replace(safeNext(route.query.next));
   } catch (e) {
     error.value = errorText(e);
     if (mfaToken.value) code.value = "";
@@ -94,7 +90,6 @@ async function submit(): Promise<void> {
 .panel p {
   margin: 0;
 }
-/* A small peg board as the page's one visual signature. */
 .board {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
