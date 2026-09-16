@@ -1,0 +1,41 @@
+# OPTIONAL – not referenced by kustomization.yaml yet.
+# Nightly pg_dump to the NAS. Adjust server/path to your NFS export, then add this
+# file to base/kustomization.yaml. Runs once a day, so the NAS wakes up at most once.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+spec:
+  schedule: "30 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: dump
+              image: postgres:17-alpine
+              env:
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: einsatzbereit-secrets
+                      key: POSTGRES_PASSWORD
+              command:
+                - sh
+                - -c
+                - >
+                  pg_dump -h postgres -U einsatzbereit -Fc einsatzbereit
+                  > /backup/einsatzbereit-$(date +%F).dump &&
+                  find /backup -name 'einsatzbereit-*.dump' -mtime +30 -delete
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              nfs:
+                server: CHANGE-ME
+                path: CHANGE-ME/backups/einsatzbereit

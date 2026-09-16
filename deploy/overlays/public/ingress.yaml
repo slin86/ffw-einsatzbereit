@@ -1,0 +1,21 @@
+# Public exposure via Traefik. TLS comes from the existing *.slin.io wildcard (DNS-01).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: einsatzbereit
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: einsatzbereit.slin.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: einsatzbereit
+                port:
+                  number: 80

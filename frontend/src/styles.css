@@ -1,0 +1,340 @@
+/*
+ * Einsatzbereit design tokens.
+ * Idea: a peg board ("Stecktafel") as found in fire stations. Chrome stays quiet
+ * (dispatch blue + cool paper); colour is reserved for status.
+ */
+:root {
+  --paper: #f4f6f8;
+  --surface: #ffffff;
+  --ink: #16202b;
+  --muted: #5b6875;
+  --line: #d5dce3;
+  --brand: #1d3a5f;
+  --brand-ink: #ffffff;
+  --focus: #2f6fb3;
+
+  --ok: #3f9a63;
+  --ok-soft: #dcefe3;
+  --ok-ink: #1f5a37;
+  --warn: #e0a915;
+  --warn-soft: #faefcc;
+  --warn-ink: #6b4f00;
+  --bad: #c93c33;
+  --bad-soft: #f6dcd9;
+  --bad-ink: #7d1f19;
+  --none: #eceff2;
+  --none-ink: #7a8591;
+
+  --font: "Barlow", system-ui, sans-serif;
+  --font-cond: "Barlow Condensed", "Barlow", system-ui, sans-serif;
+
+  /* Type scale (ratio 1.2) */
+  --fs-s: 0.833rem;
+  --fs-m: 1rem;
+  --fs-l: 1.2rem;
+  --fs-xl: 1.728rem;
+  --fs-xxl: 2.488rem;
+
+  --radius: 6px;
+  --gap: 1rem;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #10161d;
+    --surface: #18212b;
+    --ink: #e7ecf1;
+    --muted: #9aa6b2;
+    --line: #2c3845;
+    --brand: #16283f;
+    --ok-soft: #1c3a29;
+    --ok-ink: #9fdcb6;
+    --warn-soft: #3d3313;
+    --warn-ink: #f2d27a;
+    --bad-soft: #43201d;
+    --bad-ink: #f4aaa4;
+    --none: #222c37;
+    --none-ink: #8995a1;
+    color-scheme: dark;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: var(--fs-m);
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0 0 0.5em;
+}
+h1 {
+  font-size: var(--fs-xxl);
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: var(--fs-xl);
+}
+h3 {
+  font-size: var(--fs-l);
+}
+
+a {
+  color: var(--focus);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 6rem;
+}
+.page-narrow {
+  max-width: 34rem;
+}
+.lede {
+  color: var(--muted);
+  max-width: 60ch;
+  margin-top: -0.25rem;
+}
+.row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.spread {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.muted {
+  color: var(--muted);
+}
+.small {
+  font-size: var(--fs-s);
+}
+
+/* Forms ------------------------------------------------------------------ */
+
+label {
+  display: grid;
+  gap: 0.25rem;
+  font-weight: 500;
+  font-size: var(--fs-s);
+}
+input,
+select,
+textarea {
+  font: inherit;
+  font-size: max(16px, 1rem); /* prevents iOS zoom */
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.7rem;
+  min-height: 2.75rem;
+  width: 100%;
+}
+textarea {
+  min-height: 5rem;
+}
+input[type="checkbox"] {
+  width: 1.25rem;
+  min-height: 1.25rem;
+  accent-color: var(--brand);
+}
+label.check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--fs-m);
+  font-weight: 400;
+}
+fieldset {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  margin: 0;
+}
+legend {
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+.form {
+  display: grid;
+  gap: 0.9rem;
+}
+.form-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+button,
+.button {
+  font: inherit;
+  font-weight: 600;
+  min-height: 2.75rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--brand);
+  background: var(--brand);
+  color: var(--brand-ink);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+button.secondary,
+.button.secondary {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line);
+}
+button.danger {
+  background: var(--surface);
+  color: var(--bad-ink);
+  border-color: var(--bad);
+}
+button.link {
+  background: none;
+  border: none;
+  color: var(--focus);
+  padding: 0.25rem;
+  min-height: auto;
+  font-weight: 500;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.error {
+  color: var(--bad-ink);
+  background: var(--bad-soft);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.8rem;
+  margin: 0;
+}
+.notice {
+  background: var(--ok-soft);
+  color: var(--ok-ink);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.8rem;
+  margin: 0;
+}
+
+/* Surfaces ---------------------------------------------------------------- */
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.list > li + li {
+  border-top: 1px solid var(--line);
+}
+.list-item {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  color: inherit;
+  text-decoration: none;
+}
+a.list-item:hover {
+  background: var(--paper);
+}
+
+.tag {
+  display: inline-block;
+  font-size: var(--fs-s);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 0.5rem;
+  color: var(--muted);
+}
+
+dialog {
+  border: none;
+  border-radius: 10px;
+  padding: 0;
+  width: min(34rem, calc(100vw - 1.5rem));
+  max-height: calc(100dvh - 2rem);
+  color: var(--ink);
+  background: var(--surface);
+}
+dialog::backdrop {
+  background: rgb(10 20 30 / 0.5);
+}
+.dialog-body {
+  padding: 1.25rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th,
+td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+th {
+  font-family: var(--font-cond);
+  font-weight: 600;
+  font-size: var(--fs-m);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
