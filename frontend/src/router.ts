@@ -25,6 +25,7 @@ export const router = createRouter({
     { path: "/admin/nachweise", component: () => import("./views/admin/CertificationsView.vue"), meta: { admin: true, title: "Nachweise" } },
     { path: "/admin/funktionen", component: () => import("./views/admin/PositionsView.vue"), meta: { admin: true, title: "Funktionen" } },
     { path: "/admin/benutzer", component: () => import("./views/admin/UsersView.vue"), meta: { admin: true, title: "Benutzer" } },
+    { path: "/admin/protokoll", component: () => import("./views/admin/AuditView.vue"), meta: { admin: true, title: "Protokoll" } },
     { path: "/:pathMatch(.*)*", redirect: "/" },
   ],
 });

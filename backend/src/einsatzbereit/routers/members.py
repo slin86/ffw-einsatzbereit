@@ -19,6 +19,8 @@ from einsatzbereit.schemas import (
     MemberIn,
     MemberOut,
 )
+from einsatzbereit.services import audit
+from einsatzbereit.services.audit import Action, EntityType
 from einsatzbereit.services.status import active_certifications, build_cells, expiry_date
 
 router = APIRouter(prefix="/api", tags=["members"])
@@ -38,9 +40,9 @@ def _load_positions(db: DbSession, ids: list[int]) -> list[Position]:
     return positions
 
 
-def _save(db: DbSession) -> None:
+def _flush(db: DbSession) -> None:
     try:
-        db.commit()
+        db.flush()
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(status.HTTP_409_CONFLICT, "Number already in use") from exc
@@ -74,7 +76,7 @@ def list_members(_: CurrentUser, db: DbSession, include_inactive: bool = False) 
 
 
 @router.post("/members", response_model=MemberOut, status_code=status.HTTP_201_CREATED)
-def create_member(body: MemberIn, _: CurrentUser, db: DbSession) -> Member:
+def create_member(body: MemberIn, user: CurrentUser, db: DbSession) -> Member:
     member = Member(
         number=body.number.strip(),
         last_name=body.last_name.strip(),
@@ -83,19 +85,43 @@ def create_member(body: MemberIn, _: CurrentUser, db: DbSession) -> Member:
         positions=_load_positions(db, body.position_ids),
     )
     db.add(member)
-    _save(db)
+    _flush(db)
+    audit.record(
+        db,
+        user,
+        EntityType.MEMBER,
+        member.id,
+        audit.member_label(member),
+        Action.CREATE,
+        after=audit.member_snapshot(member),
+        member_id=member.id,
+    )
+    db.commit()
     return member
 
 
 @router.put("/members/{member_id}", response_model=MemberOut)
-def update_member(member_id: int, body: MemberIn, _: CurrentUser, db: DbSession) -> Member:
+def update_member(member_id: int, body: MemberIn, user: CurrentUser, db: DbSession) -> Member:
     member = _get_member(db, member_id)
+    before = audit.member_snapshot(member)
     member.number = body.number.strip()
     member.last_name = body.last_name.strip()
     member.first_name = body.first_name.strip()
     member.is_active = body.is_active
     member.positions = _load_positions(db, body.position_ids)
-    _save(db)
+    _flush(db)
+    audit.record(
+        db,
+        user,
+        EntityType.MEMBER,
+        member.id,
+        audit.member_label(member),
+        Action.UPDATE,
+        before=before,
+        after=audit.member_snapshot(member),
+        member_id=member.id,
+    )
+    db.commit()
     return member
 
 
@@ -129,7 +155,7 @@ def _checked_certification(
 
 @router.post("/completions", response_model=CompletionOut, status_code=status.HTTP_201_CREATED)
 def create_completion(body: CompletionIn, user: CurrentUser, db: DbSession) -> CompletionOut:
-    _get_member(db, body.member_id)
+    member = _get_member(db, body.member_id)
     cert, manual = _checked_certification(
         db, body.certification_id, body.completed_on, body.manual_expires_on
     )
@@ -140,11 +166,30 @@ def create_completion(body: CompletionIn, user: CurrentUser, db: DbSession) -> C
         manual_expires_on=manual,
         note=body.note,
         recorded_by_id=user.id,
+        certification=cert,
+        member=member,
     )
     db.add(completion)
+    db.flush()
+    _audit_completion(db, user, completion, Action.CREATE)
     db.commit()
     db.refresh(completion)
     return completion_out(completion)
+
+
+def _audit_completion(db: DbSession, user: CurrentUser, c: Completion, action: Action) -> None:
+    snapshot = audit.completion_snapshot(c)
+    audit.record(
+        db,
+        user,
+        EntityType.COMPLETION,
+        c.id,
+        f"{audit.member_label(c.member)}: {c.certification.name}",
+        action,
+        before=snapshot if action == Action.DELETE else None,
+        after=snapshot if action == Action.CREATE else None,
+        member_id=c.member_id,
+    )
 
 
 @router.post(
@@ -161,8 +206,8 @@ def create_completions_bulk(
     cert, manual = _checked_certification(
         db, body.certification_id, body.completed_on, body.manual_expires_on
     )
-    found = set(db.scalars(select(Member.id).where(Member.id.in_(body.member_ids))))
-    if found != set(body.member_ids):
+    members = {m.id: m for m in db.scalars(select(Member).where(Member.id.in_(body.member_ids)))}
+    if set(members) != set(body.member_ids):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Unknown member id")
     existing = set(
         db.scalars(
@@ -175,8 +220,8 @@ def create_completions_bulk(
     )
     new = [
         Completion(
-            member_id=member_id,
-            certification_id=cert.id,
+            member=members[member_id],
+            certification=cert,
             completed_on=body.completed_on,
             manual_expires_on=manual,
             note=body.note,
@@ -186,6 +231,9 @@ def create_completions_bulk(
         if member_id not in existing
     ]
     db.add_all(new)
+    db.flush()
+    for completion in new:
+        _audit_completion(db, user, completion, Action.CREATE)
     db.commit()
     return BulkCompletionOut(created=len(new))
 
@@ -200,5 +248,6 @@ def delete_completion(completion_id: int, user: CurrentUser, db: DbSession) -> N
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, "Only the recording user or an admin may delete"
         )
+    _audit_completion(db, user, completion, Action.DELETE)
     db.delete(completion)
     db.commit()

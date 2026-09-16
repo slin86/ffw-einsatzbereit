@@ -7,19 +7,28 @@ from sqlalchemy.exc import IntegrityError
 from einsatzbereit.deps import AdminUser, CurrentUser, DbSession
 from einsatzbereit.models import Certification, Completion, Position
 from einsatzbereit.schemas import CertificationIn, CertificationOut, PositionIn, PositionOut
+from einsatzbereit.services import audit
+from einsatzbereit.services.audit import Action, EntityType
 
 router = APIRouter(prefix="/api", tags=["catalog"])
 
 
-def _commit(db: DbSession, conflict_msg: str) -> None:
+def _flush(db: DbSession) -> None:
     try:
-        db.commit()
+        db.flush()
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, conflict_msg) from exc
+        raise HTTPException(status.HTTP_409_CONFLICT, "Name already in use") from exc
 
 
 # --- Certifications ---------------------------------------------------------
+
+
+def _get_cert(db: DbSession, cert_id: int) -> Certification:
+    cert = db.get(Certification, cert_id)
+    if cert is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Certification not found")
+    return cert
 
 
 @router.get("/certifications", response_model=list[CertificationOut])
@@ -32,40 +41,74 @@ def list_certifications(_: CurrentUser, db: DbSession) -> list[Certification]:
 @router.post(
     "/certifications", response_model=CertificationOut, status_code=status.HTTP_201_CREATED
 )
-def create_certification(body: CertificationIn, _: AdminUser, db: DbSession) -> Certification:
+def create_certification(body: CertificationIn, admin: AdminUser, db: DbSession) -> Certification:
     cert = Certification(**body.model_dump())
     db.add(cert)
-    _commit(db, "Name already in use")
+    _flush(db)
+    audit.record(
+        db,
+        admin,
+        EntityType.CERTIFICATION,
+        cert.id,
+        cert.name,
+        Action.CREATE,
+        after=audit.certification_snapshot(cert),
+    )
+    db.commit()
     return cert
 
 
 @router.put("/certifications/{cert_id}", response_model=CertificationOut)
 def update_certification(
-    cert_id: int, body: CertificationIn, _: AdminUser, db: DbSession
+    cert_id: int, body: CertificationIn, admin: AdminUser, db: DbSession
 ) -> Certification:
-    cert = db.get(Certification, cert_id)
-    if cert is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Certification not found")
+    cert = _get_cert(db, cert_id)
+    before = audit.certification_snapshot(cert)
     for k, v in body.model_dump().items():
         setattr(cert, k, v)
-    _commit(db, "Name already in use")
+    _flush(db)
+    audit.record(
+        db,
+        admin,
+        EntityType.CERTIFICATION,
+        cert.id,
+        cert.name,
+        Action.UPDATE,
+        before=before,
+        after=audit.certification_snapshot(cert),
+    )
+    db.commit()
     return cert
 
 
 @router.delete("/certifications/{cert_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_certification(cert_id: int, _: AdminUser, db: DbSession) -> None:
-    cert = db.get(Certification, cert_id)
-    if cert is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Certification not found")
+def delete_certification(cert_id: int, admin: AdminUser, db: DbSession) -> None:
+    cert = _get_cert(db, cert_id)
     if db.scalar(select(Completion.id).where(Completion.certification_id == cert_id).limit(1)):
         raise HTTPException(
             status.HTTP_409_CONFLICT, "Certification has completions – deactivate it instead"
         )
+    audit.record(
+        db,
+        admin,
+        EntityType.CERTIFICATION,
+        cert.id,
+        cert.name,
+        Action.DELETE,
+        before=audit.certification_snapshot(cert),
+    )
     db.delete(cert)
     db.commit()
 
 
 # --- Positions --------------------------------------------------------------
+
+
+def _get_position(db: DbSession, position_id: int) -> Position:
+    pos = db.get(Position, position_id)
+    if pos is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Position not found")
+    return pos
 
 
 def _load_certs(db: DbSession, ids: list[int]) -> list[Certification]:
@@ -81,33 +124,62 @@ def list_positions(_: CurrentUser, db: DbSession) -> list[Position]:
 
 
 @router.post("/positions", response_model=PositionOut, status_code=status.HTTP_201_CREATED)
-def create_position(body: PositionIn, _: AdminUser, db: DbSession) -> Position:
+def create_position(body: PositionIn, admin: AdminUser, db: DbSession) -> Position:
     pos = Position(
         name=body.name,
         description=body.description,
         certifications=_load_certs(db, body.certification_ids),
     )
     db.add(pos)
-    _commit(db, "Name already in use")
+    _flush(db)
+    audit.record(
+        db,
+        admin,
+        EntityType.POSITION,
+        pos.id,
+        pos.name,
+        Action.CREATE,
+        after=audit.position_snapshot(pos),
+    )
+    db.commit()
     return pos
 
 
 @router.put("/positions/{position_id}", response_model=PositionOut)
-def update_position(position_id: int, body: PositionIn, _: AdminUser, db: DbSession) -> Position:
-    pos = db.get(Position, position_id)
-    if pos is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Position not found")
+def update_position(
+    position_id: int, body: PositionIn, admin: AdminUser, db: DbSession
+) -> Position:
+    pos = _get_position(db, position_id)
+    before = audit.position_snapshot(pos)
     pos.name = body.name
     pos.description = body.description
     pos.certifications = _load_certs(db, body.certification_ids)
-    _commit(db, "Name already in use")
+    _flush(db)
+    audit.record(
+        db,
+        admin,
+        EntityType.POSITION,
+        pos.id,
+        pos.name,
+        Action.UPDATE,
+        before=before,
+        after=audit.position_snapshot(pos),
+    )
+    db.commit()
     return pos
 
 
 @router.delete("/positions/{position_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_position(position_id: int, _: AdminUser, db: DbSession) -> None:
-    pos = db.get(Position, position_id)
-    if pos is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Position not found")
+def delete_position(position_id: int, admin: AdminUser, db: DbSession) -> None:
+    pos = _get_position(db, position_id)
+    audit.record(
+        db,
+        admin,
+        EntityType.POSITION,
+        pos.id,
+        pos.name,
+        Action.DELETE,
+        before=audit.position_snapshot(pos),
+    )
     db.delete(pos)
     db.commit()

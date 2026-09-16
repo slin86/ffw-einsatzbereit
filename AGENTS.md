@@ -36,8 +36,8 @@ certifications never produce open TODOs. All of this lives in
 backend/   FastAPI, SQLAlchemy 2 (sync), Alembic, pytest, uv
   src/einsatzbereit/
     routers/    HTTP only – no business rules here
-    services/   status.py (rules), export.py (CSV/XLSX/PDF)
-frontend/  Vue 3 + TypeScript + Vite, vue-router, no state library
+    services/   status.py (rules), export.py (CSV/XLSX/PDF), audit.py (change log)
+frontend/  Vue 3 + TypeScript + Vite, vue-router, Vitest, no state library
 deploy/    Kustomize: base (app + Postgres + InfisicalSecret), overlays/public (Ingress)
 ```
 
@@ -60,10 +60,11 @@ uv run python -m einsatzbereit.seed               # demo data (50 members)
 cd frontend
 npm ci
 npm run dev        # proxies /api to :8000
-npm run build      # includes vue-tsc type check
+npm test           # Vitest unit tests (TZ=Europe/Berlin)
+npm run build      # includes vue-tsc type check (also of the tests)
 ```
 
-All four backend checks and the frontend build must pass before a change is done.
+All backend checks, the frontend tests and the frontend build must pass before a change is done.
 
 ## Conventions
 
@@ -82,6 +83,16 @@ All four backend checks and the frontend build must pass before a change is done
 - Completion input validation lives in `routers/members.py:_checked_certification` and is
   shared by the single and the bulk endpoint. Bulk entry skips members that already have a
   completion for the same certification and date.
+- **Change log:** every write endpoint for members, completions, certifications, positions
+  and users calls `services/audit.py:record` *before* the commit, in the same transaction.
+  Use the `*_snapshot` helpers for before/after state; no-op updates are skipped automatically.
+  Snapshots must never contain secrets (password hashes, TOTP secrets, tokens). A new write
+  endpoint without an audit call is a bug. `member_id` is set for member and completion
+  entries so the member page can show them.
+- **Frontend logic** that is not pure presentation lives in plain TS modules
+  (`filter.ts`, `labels.ts`, `todo.ts`, `auditText.ts`) with a `*.test.ts` next to it.
+  Views stay thin. New field names in audit snapshots need a German label in
+  `auditText.ts:FIELD_LABEL`.
 - Filter parameters are shared by `/api/overview` and `/api/exports/{fmt}`
   (`routers/overview.py:matrix_filter`). A new filter must work for both.
 

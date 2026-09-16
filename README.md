@@ -9,6 +9,9 @@ what is missing or about to expire. Mobile first, works well on a laptop too.
 - **Erfassen** – record one completion for many members at once (e.g. after an exercise);
   re-submitting the same date is idempotent
 - **Kameraden** – member management with positions and full completion history
+- **Offen** can be narrowed to one position (Funktion); the choice is kept in the URL
+- **Änderungen / Protokoll** – change log: who changed which member, completion,
+  certification, position or user, and when. Per member for all users, complete log for admins
 - **Admin** – certifications (with validity rules and warning period), positions, users
 - Login with JWT + rotating refresh cookie, optional TOTP 2FA, password reset by e-mail
 
@@ -34,7 +37,13 @@ npm run dev                                # http://localhost:5173
 Demo login after seeding: `admin@example.org` / `admin-password`.
 Without SMTP settings, password reset links are written to the backend log.
 
-Run the test suite against PostgreSQL instead of SQLite:
+Frontend unit tests (filter, date and sorting logic, change-log texts):
+
+```bash
+cd frontend && npm test
+```
+
+Run the backend test suite against PostgreSQL instead of SQLite:
 
 ```bash
 EB_TEST_DATABASE_URL=postgresql+psycopg://einsatzbereit:einsatzbereit@localhost:5432/eb_test \
@@ -59,6 +68,13 @@ CI runs the tests on both databases and checks that `alembic upgrade head`, `ale
    afterwards and change it in the app.
 
 Public URL: `https://einsatzbereit.slin.io`.
+
+## Notes
+
+- The change log starts with migration `0003`; earlier changes and data created by the
+  seed script have no log entries.
+- Log entries are kept indefinitely. At ~50 members this stays small; add a retention
+  job if that ever matters.
 
 ## Open points
 

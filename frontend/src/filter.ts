@@ -1,5 +1,5 @@
 import { computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { type LocationQuery, useRoute, useRouter } from "vue-router";
 
 import type { CellStatus } from "./types";
 
@@ -12,39 +12,35 @@ export interface MatrixFilter {
   only_open: boolean;
 }
 
-/** Filter state lives in the URL, so views are shareable and exports use exactly what is shown. */
-export function useMatrixFilter() {
-  const route = useRoute();
-  const router = useRouter();
+const STATUSES: readonly CellStatus[] = ["missing", "expired", "expiring", "valid", "not_required"];
 
-  const filter = computed<MatrixFilter>(() => {
-    const q = route.query;
-    const num = (v: unknown) => (typeof v === "string" && v !== "" ? Number(v) : null);
-    const status = q.status === undefined ? [] : Array.isArray(q.status) ? q.status : [q.status];
-    return {
-      q: typeof q.q === "string" ? q.q : "",
-      position_id: num(q.position_id),
-      certification_id: num(q.certification_id),
-      status: status.filter((s): s is CellStatus => typeof s === "string"),
-      include_inactive: q.include_inactive === "true",
-      only_open: q.only_open === "true",
-    };
-  });
-
-  function update(patch: Partial<MatrixFilter>): void {
-    void router.replace({ query: toQuery({ ...filter.value, ...patch }) });
-  }
-
-  function reset(): void {
-    void router.replace({ query: {} });
-  }
-
-  const queryString = computed(() => new URLSearchParams(toPairs(filter.value)).toString());
-
-  return { filter, update, reset, queryString };
+function first(value: LocationQuery[string]): string | null {
+  const v = Array.isArray(value) ? value[0] : value;
+  return typeof v === "string" ? v : null;
 }
 
-function toPairs(f: MatrixFilter): [string, string][] {
+function toId(value: LocationQuery[string]): number | null {
+  const v = first(value);
+  if (v === null || !/^\d+$/.test(v)) return null;
+  return Number(v);
+}
+
+/** Reads a filter from URL query parameters; unknown or malformed values are ignored. */
+export function parseFilter(query: LocationQuery): MatrixFilter {
+  const raw = query.status === undefined ? [] : Array.isArray(query.status) ? query.status : [query.status];
+  const status = STATUSES.filter((s) => raw.includes(s));
+  return {
+    q: first(query.q) ?? "",
+    position_id: toId(query.position_id),
+    certification_id: toId(query.certification_id),
+    status,
+    include_inactive: first(query.include_inactive) === "true",
+    only_open: first(query.only_open) === "true",
+  };
+}
+
+/** Key/value pairs in a stable order; default values are omitted. */
+export function filterToPairs(f: MatrixFilter): [string, string][] {
   const pairs: [string, string][] = [];
   if (f.q.trim()) pairs.push(["q", f.q.trim()]);
   if (f.position_id !== null) pairs.push(["position_id", String(f.position_id)]);
@@ -55,11 +51,35 @@ function toPairs(f: MatrixFilter): [string, string][] {
   return pairs;
 }
 
-function toQuery(f: MatrixFilter): Record<string, string | string[]> {
+export function filterToQuery(f: MatrixFilter): Record<string, string | string[]> {
   const out: Record<string, string | string[]> = {};
-  for (const [k, v] of toPairs(f)) {
+  for (const [k, v] of filterToPairs(f)) {
     const cur = out[k];
     out[k] = cur === undefined ? v : Array.isArray(cur) ? [...cur, v] : [cur, v];
   }
   return out;
+}
+
+export function filterToSearch(f: MatrixFilter): string {
+  return new URLSearchParams(filterToPairs(f)).toString();
+}
+
+/** Filter state lives in the URL, so views are shareable and exports use exactly what is shown. */
+export function useMatrixFilter() {
+  const route = useRoute();
+  const router = useRouter();
+
+  const filter = computed<MatrixFilter>(() => parseFilter(route.query));
+
+  function update(patch: Partial<MatrixFilter>): void {
+    void router.replace({ query: filterToQuery({ ...filter.value, ...patch }) });
+  }
+
+  function reset(): void {
+    void router.replace({ query: {} });
+  }
+
+  const queryString = computed(() => filterToSearch(filter.value));
+
+  return { filter, update, reset, queryString };
 }

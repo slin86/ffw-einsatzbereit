@@ -13,7 +13,7 @@ from sqlalchemy import text
 from einsatzbereit.bootstrap import ensure_initial_admin
 from einsatzbereit.config import get_settings
 from einsatzbereit.db import get_sessionmaker
-from einsatzbereit.routers import auth, catalog, me, members, overview, users
+from einsatzbereit.routers import audit, auth, catalog, me, members, overview, users
 
 logging.basicConfig(level=logging.INFO)
 
@@ -56,6 +56,7 @@ def create_app() -> FastAPI:
         catalog.router,
         members.router,
         overview.router,
+        audit.router,
     ):
         app.include_router(r)
 

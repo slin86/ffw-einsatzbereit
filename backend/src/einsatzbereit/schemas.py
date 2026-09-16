@@ -1,7 +1,7 @@
 """Pydantic request/response schemas."""
 
 from datetime import date, datetime
-from typing import Self
+from typing import Any, Self
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
@@ -241,3 +241,24 @@ class MemberDetailOut(BaseModel):
     member: MemberOut
     cells: list[CellOut]
     history: list[CompletionOut]
+
+
+# --- Audit ------------------------------------------------------------------
+
+
+class AuditEntryOut(ORMModel):
+    id: int
+    at: datetime
+    user_name: str
+    entity_type: str
+    entity_id: int
+    entity_label: str
+    member_id: int | None
+    action: str
+    changes: dict[str, Any]
+
+
+class AuditPage(BaseModel):
+    entries: list[AuditEntryOut]
+    next_before_id: int | None
+    """Pass as ``before_id`` to load the next (older) page."""

@@ -86,6 +86,7 @@ async function doLogout(): Promise<void> {
         <li><RouterLink to="/admin/nachweise" class="list-item">Nachweise</RouterLink></li>
         <li><RouterLink to="/admin/funktionen" class="list-item">Funktionen</RouterLink></li>
         <li><RouterLink to="/admin/benutzer" class="list-item">Benutzer</RouterLink></li>
+        <li><RouterLink to="/admin/protokoll" class="list-item">Protokoll</RouterLink></li>
       </ul>
     </nav>
 

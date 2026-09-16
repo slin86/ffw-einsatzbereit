@@ -10,8 +10,10 @@ Domain vocabulary (German UI term -> code name):
 
 import enum
 from datetime import date, datetime
+from typing import Any
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     Column,
     Date,
@@ -180,3 +182,28 @@ class Completion(Base):
     member: Mapped[Member] = relationship(back_populates="completions")
     certification: Mapped[Certification] = relationship()
     recorded_by: Mapped[User | None] = relationship()
+
+
+class AuditEntry(Base):
+    """Who changed what and when.
+
+    Rows are self-contained (label and user name are snapshots), so entries stay readable
+    after the referenced object or user has been deleted. No foreign keys on purpose.
+    """
+
+    __tablename__ = "audit_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    user_name: Mapped[str] = mapped_column(String(120))
+    entity_type: Mapped[str] = mapped_column(String(32), index=True)
+    entity_id: Mapped[int] = mapped_column(Integer)
+    entity_label: Mapped[str] = mapped_column(String(255))
+    member_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    """Set for entries about a member or one of their completions."""
+    action: Mapped[str] = mapped_column(String(16))
+    changes: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    """``{field: [old, new]}`` for updates, ``{field: value}`` for create/delete."""

@@ -28,9 +28,10 @@ export function formatDate(iso: string | null): string {
   return `${d}.${m}.${y}`;
 }
 
+/** Whole days between two calendar dates (YYYY-MM-DD). Independent of time zone and DST. */
 export function daysUntil(iso: string | null, today: string): number | null {
   if (!iso) return null;
-  return Math.round((Date.parse(iso) - Date.parse(today)) / 86_400_000);
+  return Math.round((Date.parse(iso.slice(0, 10)) - Date.parse(today.slice(0, 10))) / 86_400_000);
 }
 
 export function shortName(name: string, short: string): string {
@@ -47,4 +48,19 @@ export function cellHint(status: CellStatus, expires: string | null, today: stri
   if (status === "expired") return `seit ${formatDate(expires)}`;
   if (status === "expiring") return days === 0 ? "heute" : `noch ${days} T.`;
   return `bis ${formatDate(expires)}`;
+}
+
+const dateTimeFormat = new Intl.DateTimeFormat("de-DE", {
+  timeZone: "Europe/Berlin",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+/** Formats a server timestamp (UTC) in German local time. */
+export function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "–" : dateTimeFormat.format(d);
 }

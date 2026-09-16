@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
 
 import { api, errorText } from "../api";
+import AuditList from "../components/AuditList.vue";
 import CompletionDialog from "../components/CompletionDialog.vue";
 import MemberDialog from "../components/MemberDialog.vue";
 import StatusPeg from "../components/StatusPeg.vue";
@@ -18,6 +19,13 @@ const positions = ref<Position[]>([]);
 const error = ref("");
 const memberDialog = ref<InstanceType<typeof MemberDialog> | null>(null);
 const completionDialog = ref<InstanceType<typeof CompletionDialog> | null>(null);
+const auditList = ref<InstanceType<typeof AuditList> | null>(null);
+const showAudit = ref(false);
+
+async function reloadAll(): Promise<void> {
+  await load();
+  auditList.value?.reload();
+}
 const today = new Date().toLocaleDateString("sv-SE");
 
 async function load(): Promise<void> {
@@ -55,7 +63,7 @@ async function remove(entry: Completion): Promise<void> {
   if (!confirm(`Eintrag „${entry.certification_name}“ vom ${formatDate(entry.completed_on)} löschen?`)) return;
   try {
     await api(`/api/completions/${entry.id}`, "DELETE");
-    await load();
+    await reloadAll();
   } catch (e) {
     error.value = errorText(e);
   }
@@ -145,12 +153,19 @@ async function remove(entry: Completion): Promise<void> {
         </ul>
       </section>
 
-      <MemberDialog ref="memberDialog" :member="detail.member" :positions="positions" @saved="load" />
+      <section>
+        <details class="audit" @toggle="showAudit = ($event.target as HTMLDetailsElement).open">
+          <summary><h2>Änderungen</h2></summary>
+          <AuditList v-if="showAudit" ref="auditList" :source="`/api/members/${detail.member.id}/audit`" />
+        </details>
+      </section>
+
+      <MemberDialog ref="memberDialog" :member="detail.member" :positions="positions" @saved="reloadAll" />
       <CompletionDialog
         ref="completionDialog"
         :member-id="detail.member.id"
         :certifications="certifications"
-        @saved="load"
+        @saved="reloadAll"
       />
     </template>
   </div>
@@ -179,6 +194,14 @@ section {
   min-height: 2.25rem;
   padding: 0.3rem 0.7rem;
   flex-shrink: 0;
+}
+.audit summary {
+  cursor: pointer;
+  list-style-position: outside;
+  margin-left: 1rem;
+}
+.audit summary h2 {
+  display: inline;
 }
 .history {
   align-items: flex-start;

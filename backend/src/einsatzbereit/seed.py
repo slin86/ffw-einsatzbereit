@@ -130,15 +130,15 @@ def main() -> None:
         if db.scalar(select(func.count()).select_from(Member)):
             print("Database already contains members – nothing to do.")
             return
-        if not db.scalar(select(func.count()).select_from(User)):
-            db.add(
-                User(
-                    email="admin@example.org",
-                    display_name="Admin",
-                    role=UserRole.ADMIN,
-                    password_hash=hash_password("admin-password"),
-                )
+        admin = db.scalar(select(User).where(User.role == UserRole.ADMIN).limit(1))
+        if admin is None:
+            admin = User(
+                email="admin@example.org",
+                display_name="Admin",
+                role=UserRole.ADMIN,
+                password_hash=hash_password("admin-password"),
             )
+            db.add(admin)
         certs = {}
         for i, (name, short, kind, mode, months, warn) in enumerate(CERTS):
             certs[short] = Certification(
@@ -186,7 +186,12 @@ def main() -> None:
                     else None
                 )
                 member.completions.append(
-                    Completion(certification=cert, completed_on=done, manual_expires_on=manual)
+                    Completion(
+                        certification=cert,
+                        completed_on=done,
+                        manual_expires_on=manual,
+                        recorded_by=admin,
+                    )
                 )
         db.commit()
     print("Demo data created. Login: admin@example.org / admin-password")
