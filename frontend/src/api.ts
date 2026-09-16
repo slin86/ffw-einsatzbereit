@@ -21,7 +21,10 @@ export function setAuthLostHandler(handler: () => void): void {
   onAuthLost = handler;
 }
 
-/** Exchanges the httpOnly refresh cookie for a new access token. Concurrent calls share one request. */
+/**
+ * Exchanges the refresh cookie for a new access token. Concurrent callers share one request, so parallel API calls
+ * after an expired token trigger only one refresh.
+ */
 export function refreshAccessToken(): Promise<boolean> {
   refreshing ??= fetch("/api/auth/refresh", { method: "POST", credentials: "same-origin" })
     .then(async (r) => {
@@ -37,6 +40,11 @@ export function refreshAccessToken(): Promise<boolean> {
   return refreshing;
 }
 
+/**
+ * Sends a request with the access token. On status 401 the token is refreshed once and the request is repeated. If
+ * that fails, the auth lost handler is called. Error responses become an ApiError with the detail message of the
+ * backend.
+ */
 async function raw(path: string, init: RequestInit = {}, retry = true): Promise<Response> {
   const headers = new Headers(init.headers);
   if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
@@ -65,6 +73,7 @@ export async function api<T>(path: string, method = "GET", body?: unknown): Prom
   return (await res.json()) as T;
 }
 
+/** Downloads a file through the API and saves it under the file name sent by the server. */
 export async function download(path: string): Promise<void> {
   const res = await raw(path);
   const disposition = res.headers.get("Content-Disposition") ?? "";
@@ -111,7 +120,6 @@ export const ERROR_TEXT: Readonly<Record<string, string>> = {
   "Unknown position id": STALE,
 };
 
-/** Maps backend error messages (English) to user-facing German text. */
 export function errorText(e: unknown): string {
   if (!(e instanceof ApiError)) return "Keine Verbindung zum Server.";
   return ERROR_TEXT[e.message] ?? e.message;

@@ -1,5 +1,3 @@
-"""Database engine and session handling."""
-
 from collections.abc import Iterator
 from functools import lru_cache
 

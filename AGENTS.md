@@ -54,7 +54,6 @@ uv run mypy src tests
 uv run pytest -q --cov        # fails below 95 % branch coverage
 EB_TEST_DATABASE_URL=postgresql+psycopg://…/eb_test uv run pytest -q   # same suite on Postgres
 uv run alembic revision --autogenerate -m "..."   # needs EB_DATABASE_URL
-uv run python -m einsatzbereit.seed               # demo data (50 members)
 
 # frontend
 cd frontend
@@ -74,8 +73,13 @@ before a change is done.
 
 - Code, docstrings, commit messages, README: **English**.
 - **No code comments.** The only allowed comments are `TODO` markers and tool directives
-  (`# noqa: …`). Explain *why* in docstrings/JSDoc (`/** … */`), in names, or in the README.
-  Do not add explanatory `#`, `//`, `/* */` or `<!-- -->` comments.
+  (`# noqa: …`). Do not add explanatory `#`, `//`, `/* */` or `<!-- -->` comments.
+- **Documentation only on complicated functions.** Add a docstring (Python) or JSDoc (TS/Vue)
+  when a function has non-obvious logic, side effects or security relevance. Trivial
+  functions, modules and classes get no docstring.
+- **Plain text docs.** Docstrings and JSDoc contain only letters, digits, spaces, periods and
+  commas: no hyphens, dashes, arrows, backticks, brackets, colons, slashes or quotes. Write
+  full English sentences. `tests/test_code_style.py` enforces this and the comment rule.
 - Frontend code is formatted with Prettier (print width 120). Python with ruff format.
 - All user-facing text (UI, export files, mails): **German**. Use „du“, sentence case,
   active verbs („Abschluss eintragen“, not „Absenden“).
@@ -91,6 +95,10 @@ before a change is done.
 - Completion input validation lives in `routers/members.py:_checked_certification` and is
   shared by the single and the bulk endpoint. Bulk entry skips members that already have a
   completion for the same certification and date.
+- **Initial seed:** `seed.py:run_initial_seed` runs on every start and seeds only while
+  `app_state.initialized` is false. It must stay idempotent and set the flag in the same
+  transaction. Tests create the admin and an initialized `app_state` row themselves
+  (`conftest.py`), so the startup seed never interferes with other tests.
 - **Change log:** every write endpoint for members, completions, certifications, positions
   and users calls `services/audit.py:record` *before* the commit, in the same transaction.
   Use the `*_snapshot` helpers for before/after state; no-op updates are skipped automatically.

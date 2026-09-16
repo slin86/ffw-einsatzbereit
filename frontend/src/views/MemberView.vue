@@ -48,6 +48,7 @@ const certById = computed(() => new Map(certifications.value.map((c) => [c.id, c
 const required = computed(() => detail.value?.cells.filter((c) => c.required) ?? []);
 const optional = computed(() => detail.value?.cells.filter((c) => !c.required && c.completed_on) ?? []);
 
+/** Mirrors the backend rule for deleting completions. Admins may delete every entry, other users only their own. */
 function canDelete(entry: Completion): boolean {
   return session.user?.role === "admin" || entry.recorded_by_id === session.user?.id;
 }

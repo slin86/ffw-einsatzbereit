@@ -72,6 +72,10 @@ export function fieldLabel(field: string): string {
   return FIELD_LABEL[field] ?? field;
 }
 
+/**
+ * Formats a logged value for display. Booleans become ja or nein, lists are joined, ISO dates are shown in German
+ * format, and known enum values are translated.
+ */
 export function formatValue(field: string, value: unknown): string {
   if (value === null || value === undefined || value === "") return "–";
   if (typeof value === "boolean") return value ? "ja" : "nein";
@@ -91,8 +95,8 @@ export interface ChangeLine {
 }
 
 /**
- * Human-readable change lines. Updates show "old → new"; creates and deletes list the
- * non-empty values (so the log still says what was deleted).
+ * Turns the changes of an audit entry into readable lines. Updates show the old and the new value, creates and deletes
+ * list only values that are not empty.
  */
 export function changeLines(e: Pick<AuditEntry, "action" | "changes">): ChangeLine[] {
   return Object.entries(e.changes)

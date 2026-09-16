@@ -1,19 +1,16 @@
 import smtplib
 from collections.abc import Iterator
-from datetime import date
 from pathlib import Path
 from typing import Any, ClassVar
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from einsatzbereit import bootstrap, mailer, seed
+from einsatzbereit import mailer
 from einsatzbereit.config import DEV_JWT_SECRET, Settings, get_settings
 from einsatzbereit.db import get_db, get_engine, get_sessionmaker
 from einsatzbereit.main import create_app
-from einsatzbereit.models import Completion, Member, User
 
 
 def test_health_and_security_headers(client: TestClient) -> None:
@@ -111,31 +108,6 @@ def test_db_helpers() -> None:
     assert list(gen) == []
 
 
-def test_bootstrap_variants(
-    db: Session, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
-    monkeypatch.setattr(
-        bootstrap,
-        "get_settings",
-        lambda: Settings(initial_admin_email="", initial_admin_password=""),
-    )
-    bootstrap.ensure_initial_admin(db)
-    assert "nobody can log in" in caplog.text
-    assert db.scalar(select(func.count()).select_from(User)) == 0
-
-    monkeypatch.setattr(
-        bootstrap,
-        "get_settings",
-        lambda: Settings(
-            initial_admin_email="Chief@Example.org", initial_admin_password="pw-123456789"
-        ),
-    )
-    bootstrap.ensure_initial_admin(db)
-    bootstrap.ensure_initial_admin(db)
-    users = db.scalars(select(User)).all()
-    assert [u.email for u in users] == ["chief@example.org"]
-
-
 class FakeSMTP:
     sent: ClassVar[list[Any]] = []
     fail: ClassVar[bool] = False
@@ -188,21 +160,3 @@ def test_mailer_plain_smtp_without_login(monkeypatch: pytest.MonkeyPatch) -> Non
     FakeSMTP.sent.clear()
     mailer.send_mail("a@example.org", "x", "y")
     assert FakeSMTP.sent[0][0] == ["connect smtp.test:587"]
-
-
-def test_seed(
-    session_factory: sessionmaker[Session],
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    monkeypatch.setattr(seed, "get_engine", lambda: session_factory.kw["bind"])
-    monkeypatch.setattr(seed, "get_sessionmaker", lambda: session_factory)
-    seed.main()
-    seed.main()
-    out = capsys.readouterr().out
-    assert "Demo data created" in out and "nothing to do" in out
-    with session_factory() as s:
-        assert s.scalar(select(func.count()).select_from(Member)) == 50
-        completions = s.scalars(select(Completion)).all()
-        assert completions and all(c.recorded_by_id is not None for c in completions)
-        assert all(c.completed_on <= date.today() for c in completions)

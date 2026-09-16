@@ -1,5 +1,3 @@
-"""User administration (admins only)."""
-
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -63,6 +61,11 @@ def create_user(body: UserCreate, admin: AdminUser, db: DbSession) -> User:
 
 @router.patch("/{user_id}", response_model=UserOut)
 def update_user(user_id: int, body: UserUpdate, admin: AdminUser, db: DbSession) -> User:
+    """
+    Changes name, role or active flag of a user. The last active admin cannot be demoted or
+    deactivated. Deactivation and role changes of other users revoke their sessions, so the
+    change takes effect immediately.
+    """
     user = _get(db, user_id)
     demotes_admin = user.role == UserRole.ADMIN and (
         (body.role is not None and body.role != UserRole.ADMIN) or body.is_active is False
@@ -90,6 +93,10 @@ def update_user(user_id: int, body: UserUpdate, admin: AdminUser, db: DbSession)
 
 @router.post("/{user_id}/reset-2fa", response_model=UserOut)
 def reset_totp(user_id: int, admin: AdminUser, db: DbSession) -> User:
+    """
+    Removes two factor authentication of a user who lost the device and signs that user out
+    everywhere.
+    """
     user = _get(db, user_id)
     before = audit.user_snapshot(user)
     user.totp_enabled = False

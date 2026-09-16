@@ -19,8 +19,8 @@ export interface OpenRow extends MatrixRow {
 }
 
 /**
- * Members with open items, most urgent first: worst status, then number of open items,
- * then name. Open cells inside a row are ordered by severity as well.
+ * Returns the members with open items, most urgent first. Rows are ordered by worst status, then by number of open
+ * items, then by name. Open items inside a row are ordered by severity.
  */
 export function buildOpenRows(rows: MatrixRow[]): OpenRow[] {
   return rows

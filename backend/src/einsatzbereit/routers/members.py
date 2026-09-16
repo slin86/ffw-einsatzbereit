@@ -1,5 +1,3 @@
-"""Members (Kameraden) and their completions. Available to all logged-in users."""
-
 from datetime import date
 
 from fastapi import APIRouter, HTTPException, status
@@ -110,6 +108,11 @@ def create_member(body: MemberIn, user: CurrentUser, db: DbSession) -> Member:
 
 @router.put("/members/{member_id}", response_model=MemberOut)
 def update_member(member_id: int, body: MemberIn, user: CurrentUser, db: DbSession) -> Member:
+    """
+    Updates a member and records the change. Positions are loaded before the member changes,
+    otherwise autoflush would write a duplicate number early and the request would fail with a
+    server error instead of a conflict.
+    """
     member = _get_member(db, member_id)
     positions = _load_positions(db, body.position_ids)
     before = audit.member_snapshot(member)
@@ -136,6 +139,10 @@ def update_member(member_id: int, body: MemberIn, user: CurrentUser, db: DbSessi
 
 @router.get("/members/{member_id}", response_model=MemberDetailOut)
 def member_detail(member_id: int, _: CurrentUser, db: DbSession) -> MemberDetailOut:
+    """
+    Returns a member with the status of every active certification and the full completion
+    history, newest first.
+    """
     member = _get_member(db, member_id)
     cells = build_cells(member, active_certifications(db), date.today())
     history = sorted(member.completions, key=lambda c: (c.completed_on, c.id), reverse=True)
@@ -149,7 +156,11 @@ def member_detail(member_id: int, _: CurrentUser, db: DbSession) -> MemberDetail
 def _checked_certification(
     db: DbSession, certification_id: int, completed_on: date, manual_expires_on: date | None
 ) -> tuple[Certification, date | None]:
-    """Validate completion input; return the certification and the expiry value to store."""
+    """
+    Validates completion input for single and bulk entry. The date must not lie in the future,
+    and certifications with manual validity need an expiry date. Returns the certification and
+    the expiry date to store, which is only kept for manual validity.
+    """
     cert = db.get(Certification, certification_id)
     if cert is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Certification not found")
@@ -207,10 +218,10 @@ def _audit_completion(db: DbSession, user: User, c: Completion, action: Action) 
 def create_completions_bulk(
     body: BulkCompletionIn, user: CurrentUser, db: DbSession
 ) -> BulkCompletionOut:
-    """Record one completion for several members in a single transaction.
-
-    Members that already have a completion for this certification on the same date are
-    skipped, so submitting the form twice does not create duplicates.
+    """
+    Records the same completion for several members in one transaction. Members that already have
+    this certification on the same date are skipped, so sending the form twice creates no
+    duplicates. Returns the number of new completions.
     """
     cert, manual = _checked_certification(
         db, body.certification_id, body.completed_on, body.manual_expires_on
@@ -249,7 +260,10 @@ def create_completions_bulk(
 
 @router.delete("/completions/{completion_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_completion(completion_id: int, user: CurrentUser, db: DbSession) -> None:
-    """Admins may delete any completion; users only the ones they recorded themselves."""
+    """
+    Deletes a completion. Admins may delete any entry, other users only the entries they recorded
+    themselves.
+    """
     completion = db.get(Completion, completion_id)
     if completion is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Completion not found")

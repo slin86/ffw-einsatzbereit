@@ -26,7 +26,6 @@ cd backend
 cp .env.example .env
 uv sync
 uv run alembic upgrade head
-uv run python -m einsatzbereit.seed        # optional demo data
 uv run uvicorn einsatzbereit.main:app --reload
 
 cd ../frontend
@@ -34,7 +33,9 @@ npm ci
 npm run dev                                # http://localhost:5173
 ```
 
-Demo login after seeding: `admin@example.org` / `admin-password`.
+On the first start the app seeds the empty database, see [Initial seed](#initial-seed).
+With the example `.env` you log in as `admin@example.org` / `admin-password` and get
+50 demo members.
 Without SMTP settings, password reset links are written to the backend log.
 
 Tests and coverage:
@@ -66,15 +67,14 @@ CI runs the tests on both databases and checks that `alembic upgrade head`, `ale
    | `EB_JWT_SECRET` | `openssl rand -base64 48`; the app refuses to start with the dev default |
    | `POSTGRES_PASSWORD` | random |
    | `EB_DATABASE_URL` | `postgresql+psycopg://einsatzbereit:<POSTGRES_PASSWORD>@postgres:5432/einsatzbereit` |
-   | `EB_INITIAL_ADMIN_EMAIL`, `EB_INITIAL_ADMIN_PASSWORD` | first admin |
+   | `EB_INITIAL_ADMIN_EMAIL`, `EB_INITIAL_ADMIN_PASSWORD` | first admin, used only by the initial seed |
    | `EB_SMTP_HOST`, `EB_SMTP_PORT`, `EB_SMTP_USERNAME`, `EB_SMTP_PASSWORD`, `EB_SMTP_FROM` | mail relay for password resets; empty host logs the link instead |
 
 3. Replace all `CHANGE-ME` values in `deploy/base/infisical-secret.yaml`.
 4. Copy `deploy/` into `slin86/argocd` (or point an ArgoCD Application at
    `deploy/overlays/public`) and pin `newTag` to a commit SHA.
 5. The app refuses to start if `EB_JWT_SECRET` is still the development default. It runs
-   migrations on start and creates the first admin from
-   `EB_INITIAL_ADMIN_*` if the user table is empty. Remove the password from Infisical
+   migrations on start and then the initial seed. Remove the admin password from Infisical
    afterwards and change it in the app.
 
 Public URL: `https://einsatzbereit.slin.io`, exposed through Traefik with the existing
@@ -87,10 +87,30 @@ Design decisions in `deploy/`:
 - The app runs as a single replica with `Recreate` strategy, because migrations run on
   container start.
 
+## Initial seed
+
+The table `app_state` holds a single row with an `initialized` flag. On every start the app
+locks this row and checks the flag:
+
+- **Not initialized:** it creates the admin from `EB_INITIAL_ADMIN_EMAIL` and
+  `EB_INITIAL_ADMIN_PASSWORD`, the standard certifications and positions, and with
+  `EB_SEED_DEMO_DATA=true` also 50 demo members with completions. The flag is set in the same
+  transaction.
+- **Initialized:** nothing happens, even if the admin or the catalog were deleted later.
+- **No admin credentials on first start:** nothing is seeded and the flag stays unset, so the
+  seed runs as soon as the credentials are provided.
+
+Migration `0004` marks existing installations as initialized if they already contain users.
+To seed again on purpose, set the flag back:
+`UPDATE app_state SET initialized = false, initialized_at = NULL;`
+Downgrading below `0004` drops the flag; the next upgrade derives it from existing users again.
+
+Never enable `EB_SEED_DEMO_DATA` in production.
+
 ## Notes
 
 - The change log starts with migration `0003`; earlier changes and data created by the
-  seed script have no log entries.
+  initial seed have no log entries.
 - Log entries are kept indefinitely. At ~50 members this stays small; add a retention
   job if that ever matters.
 

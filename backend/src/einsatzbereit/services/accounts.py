@@ -1,5 +1,3 @@
-"""Session revocation and password reset mails."""
-
 from datetime import timedelta
 
 from sqlalchemy import select, update
@@ -12,7 +10,10 @@ from einsatzbereit.security import hash_opaque_token, new_opaque_token, now_utc
 
 
 def revoke_all_sessions(db: Session, user: User) -> None:
-    """Invalidate outstanding access tokens and all refresh tokens of a user (no commit)."""
+    """
+    Signs a user out everywhere. Raising the token version invalidates all access tokens, and all
+    refresh tokens are revoked. The caller commits.
+    """
     user.token_version += 1
     db.execute(
         update(RefreshToken)
@@ -22,9 +23,9 @@ def revoke_all_sessions(db: Session, user: User) -> None:
 
 
 def send_password_reset(db: Session, user: User) -> bool:
-    """Send a reset link unless one was sent within the cooldown. Returns whether a mail went out.
-
-    A new link invalidates all older, unused links of the user.
+    """
+    Sends a password reset link unless one was sent within the cooldown period. A new link
+    invalidates all older unused links of the user. Returns whether a mail was sent.
     """
     s = get_settings()
     now = now_utc()

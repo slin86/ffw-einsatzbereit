@@ -26,6 +26,7 @@ function open(certificationId?: number): void {
   dialog.value?.showModal();
 }
 
+/** Saves the completion. The expiry date is only sent for certifications with manual validity. */
 async function save(): Promise<void> {
   saving.value = true;
   error.value = "";

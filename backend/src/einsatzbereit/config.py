@@ -1,5 +1,3 @@
-"""Application settings, loaded from environment variables (prefix ``EB_``)."""
-
 from functools import lru_cache
 
 from pydantic import Field
@@ -39,13 +37,17 @@ class Settings(BaseSettings):
 
     initial_admin_email: str = ""
     initial_admin_password: str = ""
+    seed_demo_data: bool = False
 
     static_dir: str = "static"
 
     totp_issuer: str = "Einsatzbereit"
 
     def check_production_safety(self) -> None:
-        """Refuse to run with the development JWT secret when cookies are marked secure."""
+        """
+        Stops the application when secure cookies are enabled but the JWT secret is still the
+        development default. Secure cookies indicate a production deployment.
+        """
         if self.cookie_secure and self.jwt_secret == DEV_JWT_SECRET:
             raise RuntimeError("EB_JWT_SECRET must be set in production")
 

@@ -1,8 +1,3 @@
-"""Expiry calculation and status matrix.
-
-This module holds the core business rules and is deliberately free of HTTP concerns.
-"""
-
 import calendar
 import enum
 from collections.abc import Iterable, Sequence
@@ -16,8 +11,6 @@ from einsatzbereit.models import Certification, Completion, Member, Position, Va
 
 
 class CellStatus(enum.StrEnum):
-    """Status of one member/certification pair."""
-
     MISSING = "missing"
     EXPIRED = "expired"
     EXPIRING = "expiring"
@@ -37,6 +30,10 @@ OPEN_STATUSES = frozenset({CellStatus.MISSING, CellStatus.EXPIRED, CellStatus.EX
 
 
 def add_months(d: date, months: int) -> date:
+    """
+    Adds months to a date. If the target month is shorter, the day becomes its last day, so
+    January 31 plus one month is the end of February.
+    """
     month_index = d.month - 1 + months
     year = d.year + month_index // 12
     month = month_index % 12 + 1
@@ -45,10 +42,11 @@ def add_months(d: date, months: int) -> date:
 
 
 def expiry_date(cert: Certification, completion: Completion) -> date | None:
-    """Return the last day on which the completion is valid, or ``None`` if unlimited.
-
-    Expiry is computed on read (not stored) so that changing a certification's
-    validity rules immediately applies to all existing completions.
+    """
+    Returns the last valid day of a completion, or None if it never expires. A fixed duration
+    ends the day before the anniversary. End of year validity ends on December 31 of the year
+    reached after the duration. Manual validity uses the entered date. Expiry is calculated when
+    read, so changed rules apply to all existing completions.
     """
     match cert.validity_mode:
         case ValidityMode.UNLIMITED:
@@ -69,6 +67,11 @@ def expiry_date(cert: Certification, completion: Completion) -> date | None:
 def evaluate(
     cert: Certification, latest: Completion | None, required: bool, today: date
 ) -> tuple[CellStatus, date | None]:
+    """
+    Determines the status of one member and one certification. Without a completion the status is
+    missing or not required. Otherwise the expiry date decides between expired, expiring within
+    the warning period and valid. Certifications that are not required never count as open.
+    """
     if latest is None:
         return (CellStatus.MISSING if required else CellStatus.NOT_REQUIRED), None
     expires = expiry_date(cert, latest)
@@ -90,6 +93,10 @@ def required_certification_ids(member: Member) -> set[int]:
 
 
 def latest_completions(completions: Iterable[Completion]) -> dict[int, Completion]:
+    """
+    Returns the newest completion per certification. Completions on the same date are ordered by
+    id, so the entry recorded last wins.
+    """
     latest: dict[int, Completion] = {}
     for c in completions:
         cur = latest.get(c.certification_id)
@@ -175,6 +182,11 @@ def active_certifications(db: Session) -> list[Certification]:
 
 
 def build_matrix(db: Session, flt: MatrixFilter, today: date | None = None) -> Matrix:
+    """
+    Builds the status matrix for all members matching the filter. A status filter keeps members
+    with at least one matching cell. The open filter keeps members with open items and sorts the
+    most urgent first, otherwise members are sorted by name.
+    """
     today = today or date.today()
     certs = active_certifications(db)
     if flt.certification_id is not None:

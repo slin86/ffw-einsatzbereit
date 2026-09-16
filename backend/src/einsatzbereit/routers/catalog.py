@@ -1,5 +1,3 @@
-"""Certifications (Nachweise) and positions (Funktionen). Read: all users, write: admins."""
-
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -80,6 +78,10 @@ def update_certification(
 
 @router.delete("/certifications/{cert_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_certification(cert_id: int, admin: AdminUser, db: DbSession) -> None:
+    """
+    Deletes a certification that was never recorded. Certifications with completions must be
+    deactivated instead, so the history of the members stays intact.
+    """
     cert = _get_cert(db, cert_id)
     if db.scalar(select(Completion.id).where(Completion.certification_id == cert_id).limit(1)):
         raise HTTPException(
@@ -143,6 +145,11 @@ def create_position(body: PositionIn, admin: AdminUser, db: DbSession) -> Positi
 def update_position(
     position_id: int, body: PositionIn, admin: AdminUser, db: DbSession
 ) -> Position:
+    """
+    Replaces name, description and required certifications of a position. Certifications are
+    loaded before the position changes, otherwise autoflush would write a duplicate name early
+    and the request would fail with a server error instead of a conflict.
+    """
     pos = _get_position(db, position_id)
     certifications = _load_certs(db, body.certification_ids)
     before = audit.position_snapshot(pos)

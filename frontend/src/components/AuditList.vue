@@ -6,7 +6,6 @@ import { api, errorText } from "../api";
 import { actionText, changeLines, ENTITY_LABEL, type AuditEntry, type AuditPage } from "../auditText";
 import { formatDateTime } from "../labels";
 
-/** Paged change log. `source` is the API path without paging parameters. */
 const props = defineProps<{ source: string; showEntity?: boolean }>();
 
 const entries = ref<AuditEntry[]>([]);
@@ -14,6 +13,7 @@ const nextBefore = ref<number | null>(null);
 const loading = ref(false);
 const error = ref("");
 
+/** Loads a page of audit entries. Without a before id the list is replaced, otherwise older entries are appended. */
 async function fetchPage(beforeId: number | null): Promise<void> {
   loading.value = true;
   error.value = "";

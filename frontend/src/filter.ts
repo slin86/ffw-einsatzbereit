@@ -34,7 +34,10 @@ function toId(value: LocationQuery[string]): number | null {
   return Number(v);
 }
 
-/** Reads a filter from URL query parameters; unknown or malformed values are ignored. */
+/**
+ * Reads the matrix filter from URL query parameters. Malformed ids and unknown status values are ignored, repeated
+ * flags use the first value, and statuses come back in a fixed order.
+ */
 export function parseFilter(query: LocationQuery): MatrixFilter {
   const raw = query.status === undefined ? [] : Array.isArray(query.status) ? query.status : [query.status];
   const status = STATUSES.filter((s) => raw.includes(s));
@@ -48,7 +51,6 @@ export function parseFilter(query: LocationQuery): MatrixFilter {
   };
 }
 
-/** Key/value pairs in a stable order; default values are omitted. */
 export function filterToPairs(f: MatrixFilter): [string, string][] {
   const pairs: [string, string][] = [];
   if (f.q.trim()) pairs.push(["q", f.q.trim()]);
@@ -60,6 +62,9 @@ export function filterToPairs(f: MatrixFilter): [string, string][] {
   return pairs;
 }
 
+/**
+ * Converts a filter into a route query. Default values are left out, and several statuses become a repeated parameter.
+ */
 export function filterToQuery(f: MatrixFilter): Record<string, string | string[]> {
   const out: Record<string, string | string[]> = {};
   for (const [k, v] of filterToPairs(f)) {
@@ -73,7 +78,10 @@ export function filterToSearch(f: MatrixFilter): string {
   return new URLSearchParams(filterToPairs(f)).toString();
 }
 
-/** Filter state lives in the URL, so views are shareable and exports use exactly what is shown. */
+/**
+ * Keeps the matrix filter in the URL, so filtered views can be shared and exports use exactly the filter that is
+ * shown.
+ */
 export function useMatrixFilter() {
   const route = useRoute();
   const router = useRouter();

@@ -18,6 +18,7 @@ const code = ref("");
 const disablePassword = ref("");
 const totpError = ref("");
 
+/** Changes the password. The server revokes all sessions, so the user is logged out and sent to the login page. */
 async function changePassword(): Promise<void> {
   pwMsg.value = "";
   pwError.value = "";

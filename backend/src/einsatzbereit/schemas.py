@@ -1,5 +1,3 @@
-"""Pydantic request/response schemas."""
-
 from datetime import date, datetime
 from typing import Any, Self
 
@@ -98,6 +96,10 @@ class CertificationBase(BaseModel):
 
     @model_validator(mode="after")
     def _check_months(self) -> Self:
+        """
+        Requires a duration for validity modes that depend on it and clears the duration for all
+        other modes.
+        """
         needs_months = self.validity_mode in (ValidityMode.FIXED_DURATION, ValidityMode.END_OF_YEAR)
         if needs_months and self.validity_months is None:
             raise ValueError("validity_months is required for this validity_mode")
@@ -164,8 +166,6 @@ class CompletionIn(BaseModel):
 
 
 class BulkCompletionIn(BaseModel):
-    """Same completion for many members at once, e.g. after a joint exercise."""
-
     certification_id: int
     member_ids: list[int] = Field(min_length=1, max_length=500)
     completed_on: date
@@ -174,6 +174,10 @@ class BulkCompletionIn(BaseModel):
 
     @model_validator(mode="after")
     def _check(self) -> Self:
+        """
+        Rejects an expiry date before the completion date and removes duplicate member ids while
+        keeping their order.
+        """
         if self.manual_expires_on is not None and self.manual_expires_on < self.completed_on:
             raise ValueError("manual_expires_on must not be before completed_on")
         self.member_ids = list(dict.fromkeys(self.member_ids))
@@ -240,4 +244,3 @@ class AuditEntryOut(ORMModel):
 class AuditPage(BaseModel):
     entries: list[AuditEntryOut]
     next_before_id: int | None
-    """Pass as ``before_id`` to load the next (older) page."""

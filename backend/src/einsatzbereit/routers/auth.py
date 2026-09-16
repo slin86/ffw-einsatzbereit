@@ -1,5 +1,3 @@
-"""Login, MFA, token refresh, logout and password reset."""
-
 import uuid
 from datetime import timedelta
 from typing import Annotated
@@ -57,6 +55,11 @@ def _set_refresh_cookie(response: Response, token: str) -> None:
 def _issue_tokens(
     db: DbSession, response: Response, user: User, family_id: str | None = None
 ) -> TokenResponse:
+    """
+    Creates a new refresh token, stores only its hash, sets it as an http only cookie and returns
+    a fresh access token. Passing a family id keeps the new token in the rotation chain of an
+    existing login.
+    """
     s = get_settings()
     raw = new_opaque_token()
     db.add(
@@ -73,6 +76,10 @@ def _issue_tokens(
 
 
 def _register_failure(db: DbSession, user: User) -> None:
+    """
+    Counts a failed login attempt. After the configured number of failures the account is locked
+    for a while and the counter starts again.
+    """
     s = get_settings()
     user.failed_logins += 1
     if user.failed_logins >= s.max_failed_logins:
@@ -102,6 +109,11 @@ def _revoke_family(db: DbSession, family_id: str) -> None:
 
 @router.post("/login", response_model=TokenResponse)
 def login(body: LoginRequest, response: Response, db: DbSession) -> TokenResponse:
+    """
+    Checks email and password. Unknown addresses still run a password hash, so response times do
+    not reveal which accounts exist. Users with two factor authentication get a short lived MFA
+    token instead of access tokens.
+    """
     user = db.scalar(select(User).where(User.email == body.email.lower()))
     if user is None:
         verify_password(body.password, _TIMING_DUMMY_HASH)
@@ -121,6 +133,11 @@ def login(body: LoginRequest, response: Response, db: DbSession) -> TokenRespons
 
 @router.post("/login/mfa", response_model=TokenResponse)
 def login_mfa(body: MfaLoginRequest, response: Response, db: DbSession) -> TokenResponse:
+    """
+    Second login step for users with two factor authentication. Accepts the MFA token from the
+    first step together with a TOTP code and issues access and refresh tokens. Wrong codes count
+    as failed logins.
+    """
     decoded = decode_jwt(body.mfa_token, "mfa")
     if decoded is None:
         raise _invalid()
@@ -140,6 +157,11 @@ def refresh(
     db: DbSession,
     eb_refresh: Annotated[str | None, Cookie()] = None,
 ) -> TokenResponse:
+    """
+    Exchanges the refresh cookie for a new access token and rotates the refresh token. If an
+    already rotated token is presented again, the whole token family is revoked because the token
+    was most likely stolen.
+    """
     token = _find_refresh_token(db, eb_refresh) if eb_refresh else None
     if token is None:
         raise _invalid()
@@ -167,7 +189,9 @@ def logout(
 
 @router.post("/password-reset/request", status_code=status.HTTP_202_ACCEPTED)
 def request_password_reset(body: PasswordResetRequest, db: DbSession) -> None:
-    """Always returns 202 so that registered e-mail addresses cannot be enumerated."""
+    """
+    Always answers with status 202, so nobody can find out which email addresses are registered.
+    """
     user = db.scalar(select(User).where(User.email == body.email.lower()))
     if user is not None and user.is_active:
         send_password_reset(db, user)
@@ -175,6 +199,10 @@ def request_password_reset(body: PasswordResetRequest, db: DbSession) -> None:
 
 @router.post("/password-reset/confirm", status_code=status.HTTP_204_NO_CONTENT)
 def confirm_password_reset(body: PasswordResetConfirm, db: DbSession) -> None:
+    """
+    Sets a new password with a valid reset token. The token works only once, the lockout is
+    cleared and all existing sessions of the user are revoked.
+    """
     invalid = HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid or expired token")
     token = db.scalar(
         select(PasswordResetToken).where(

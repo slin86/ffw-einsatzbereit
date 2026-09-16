@@ -1,5 +1,3 @@
-"""CSV / XLSX / PDF export of the status matrix (members x certifications)."""
-
 import csv
 import io
 from datetime import date
@@ -38,6 +36,10 @@ def _fmt(d: date | None) -> str:
 
 
 def cell_text(cell: Cell) -> str:
+    """
+    Returns the text of one matrix cell. Missing entries show fehlt, unlimited ones show
+    unbefristet, and certifications that are not required show their expiry date in brackets.
+    """
     if cell.status == CellStatus.MISSING:
         return "fehlt"
     if cell.status == CellStatus.NOT_REQUIRED:
@@ -52,6 +54,10 @@ def _header(matrix: Matrix) -> list[str]:
 
 
 def to_csv(matrix: Matrix) -> bytes:
+    """
+    Writes the matrix as semicolon separated CSV with a status column and an expiry column per
+    certification. A byte order mark lets Excel detect UTF8.
+    """
     buf = io.StringIO()
     writer = csv.writer(buf, delimiter=";")
     header = ["Nr", "Name", "Vorname"]
@@ -67,6 +73,10 @@ def to_csv(matrix: Matrix) -> bytes:
 
 
 def to_xlsx(matrix: Matrix, filter_description: str) -> bytes:
+    """
+    Builds an Excel sheet with one row per member, one colored cell per certification, a frozen
+    header and a color legend.
+    """
     wb = Workbook()
     wb.remove(wb["Sheet"])
     ws = wb.create_sheet("Nachweise")
@@ -103,6 +113,10 @@ def to_xlsx(matrix: Matrix, filter_description: str) -> bytes:
 
 
 def to_pdf(matrix: Matrix, filter_description: str) -> bytes:
+    """
+    Builds a landscape PDF of the matrix. Columns use the certification abbreviations to fit the
+    page, and a legend below the table explains colors and abbreviations.
+    """
     out = io.BytesIO()
     doc = SimpleDocTemplate(
         out,

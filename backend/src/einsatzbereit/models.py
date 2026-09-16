@@ -1,13 +1,3 @@
-"""ORM models.
-
-Domain vocabulary (German UI term -> code name):
-    Kamerad    -> Member
-    Funktion   -> Position        (e.g. AGT, Maschinist)
-    Nachweis   -> Certification   (seminar, exercise, test, further training)
-    Abschluss  -> Completion
-    Benutzer   -> User            (people who log in; members never log in)
-"""
-
 import enum
 from datetime import date, datetime
 from typing import Any
@@ -15,6 +5,7 @@ from typing import Any
 from sqlalchemy import (
     JSON,
     Boolean,
+    CheckConstraint,
     Column,
     Date,
     DateTime,
@@ -45,13 +36,9 @@ class CertificationKind(enum.StrEnum):
 
 class ValidityMode(enum.StrEnum):
     UNLIMITED = "unlimited"
-    """Never expires."""
     FIXED_DURATION = "fixed_duration"
-    """Expires ``validity_months`` after the completion date."""
     END_OF_YEAR = "end_of_year"
-    """Expires on Dec 31 of the year reached after ``validity_months``."""
     MANUAL = "manual"
-    """Expiry date is entered per completion."""
 
 
 def _enum(e: type[enum.StrEnum]) -> Enum:
@@ -133,7 +120,6 @@ class Certification(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(120), unique=True)
     short_name: Mapped[str] = mapped_column(String(12), default="")
-    """Abbreviation used as column header in the compact status board."""
     kind: Mapped[CertificationKind] = mapped_column(_enum(CertificationKind))
     description: Mapped[str] = mapped_column(Text, default="")
     validity_mode: Mapped[ValidityMode] = mapped_column(_enum(ValidityMode))
@@ -185,12 +171,6 @@ class Completion(Base):
 
 
 class AuditEntry(Base):
-    """Who changed what and when.
-
-    Rows are self-contained (label and user name are snapshots), so entries stay readable
-    after the referenced object or user has been deleted. No foreign keys on purpose.
-    """
-
     __tablename__ = "audit_entries"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -203,7 +183,14 @@ class AuditEntry(Base):
     entity_id: Mapped[int] = mapped_column(Integer)
     entity_label: Mapped[str] = mapped_column(String(255))
     member_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
-    """Set for entries about a member or one of their completions."""
     action: Mapped[str] = mapped_column(String(16))
     changes: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    """``{field: [old, new]}`` for updates, ``{field: value}`` for create/delete."""
+
+
+class AppState(Base):
+    __tablename__ = "app_state"
+    __table_args__ = (CheckConstraint("id = 1", name="app_state_single_row"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True, default=1)
+    initialized: Mapped[bool] = mapped_column(Boolean, default=False)
+    initialized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -1,5 +1,3 @@
-"""FastAPI application: JSON API under /api, built Vue SPA under /."""
-
 import logging
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
@@ -10,10 +8,10 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
-from einsatzbereit.bootstrap import ensure_initial_admin
 from einsatzbereit.config import get_settings
 from einsatzbereit.db import get_sessionmaker
 from einsatzbereit.routers import audit, auth, catalog, me, members, overview, users
+from einsatzbereit.seed import run_initial_seed
 
 logging.basicConfig(level=logging.INFO)
 
@@ -26,13 +24,21 @@ CSP = (
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """
+    Checks the configuration for unsafe production settings and runs the one time initial seed
+    before the application accepts requests.
+    """
     get_settings().check_production_safety()
     with get_sessionmaker()() as db:
-        ensure_initial_admin(db)
+        run_initial_seed(db)
     yield
 
 
 def create_app() -> FastAPI:
+    """
+    Builds the application with security headers, all API routers, health endpoints and, if a
+    built frontend exists, the single page application.
+    """
     app = FastAPI(title="Einsatzbereit", version="0.1.0", lifespan=lifespan)
 
     @app.middleware("http")
@@ -76,6 +82,11 @@ def create_app() -> FastAPI:
 
 
 def _mount_spa(app: FastAPI, static_dir: Path) -> None:
+    """
+    Serves the built frontend. Asset files are served directly, every other path outside the API
+    returns the index page so that client side routes work. Paths that resolve outside the static
+    directory also get the index page, which prevents path traversal.
+    """
     index = static_dir / "index.html"
     if not index.is_file():
         return

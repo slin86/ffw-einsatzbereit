@@ -1,5 +1,3 @@
-"""Password hashing, token handling and TOTP."""
-
 import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
@@ -48,7 +46,10 @@ def create_jwt(user_id: int, token_type: TokenType, token_version: int) -> str:
 
 
 def decode_jwt(token: str, expected_type: TokenType) -> tuple[int, int] | None:
-    """Return ``(user_id, token_version)`` or ``None`` if the token is invalid."""
+    """
+    Validates signature, issuer, expiry and token type. Returns the user id and the token
+    version, or None for any invalid token.
+    """
     s = get_settings()
     try:
         payload = jwt.decode(
@@ -88,5 +89,8 @@ def verify_totp(secret: str, code: str) -> bool:
 
 
 def ensure_aware(dt: datetime) -> datetime:
-    """SQLite (tests) returns naive datetimes; Postgres returns aware ones."""
+    """
+    Adds the UTC time zone to naive datetimes. SQLite returns naive values, PostgreSQL returns
+    aware ones.
+    """
     return dt if dt.tzinfo else dt.replace(tzinfo=UTC)

@@ -23,6 +23,7 @@ function selectPosition(id: number | null): void {
   void router.replace({ query: id === null ? {} : { position_id: String(id) } });
 }
 
+/** Loads the overview for the selected position. Only the position filter applies on this page. */
 async function load(): Promise<void> {
   error.value = "";
   try {

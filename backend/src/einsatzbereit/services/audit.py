@@ -1,5 +1,3 @@
-"""Change log for members, completions, certifications, positions and users."""
-
 import enum
 from datetime import date
 from typing import Any
@@ -86,7 +84,6 @@ def position_snapshot(p: Position) -> Snapshot:
 
 
 def user_snapshot(u: User) -> Snapshot:
-    """Only non-secret fields. Never log hashes, TOTP secrets or tokens."""
     return {
         "email": u.email,
         "display_name": u.display_name,
@@ -97,6 +94,7 @@ def user_snapshot(u: User) -> Snapshot:
 
 
 def diff(before: Snapshot, after: Snapshot) -> dict[str, list[Any]]:
+    """Returns the fields whose values differ, each with the old and the new value."""
     return {
         key: [before.get(key), after.get(key)]
         for key in sorted(before.keys() | after.keys())
@@ -116,9 +114,11 @@ def record(
     after: Snapshot | None = None,
     member_id: int | None = None,
 ) -> AuditEntry | None:
-    """Add an audit entry to the session (the caller commits).
-
-    Updates without any effective change are not recorded.
+    """
+    Adds an audit entry to the session without committing, so it is saved together with the
+    change it describes. Updates store only changed fields and are skipped when nothing changed.
+    Creates store the new state, deletes the old state. Label and user name are copied, so
+    entries stay readable after the object or the user is gone.
     """
     if action == Action.UPDATE:
         changes: dict[str, Any] = diff(before or {}, after or {})

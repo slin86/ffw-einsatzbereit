@@ -1,5 +1,3 @@
-"""Read access to the change log."""
-
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -18,6 +16,11 @@ Limit = Annotated[int, Query(ge=1, le=200)]
 def _page(
     db: DbSession, stmt: Select[tuple[AuditEntry]], limit: int, before_id: int | None
 ) -> AuditPage:
+    """
+    Returns one page of audit entries, newest first. Paging uses the entry id instead of an
+    offset, so new entries do not shift the pages. One extra row is fetched to find out whether
+    an older page exists.
+    """
     if before_id is not None:
         stmt = stmt.where(AuditEntry.id < before_id)
     rows = list(db.scalars(stmt.order_by(AuditEntry.id.desc()).limit(limit + 1)))
@@ -38,7 +41,6 @@ def list_audit(
     limit: Limit = 50,
     before_id: int | None = None,
 ) -> AuditPage:
-    """Full change log, newest first. Admins only."""
     stmt = select(AuditEntry)
     if entity_type is not None:
         stmt = stmt.where(AuditEntry.entity_type == entity_type.value)
@@ -56,7 +58,6 @@ def member_audit(
     limit: Limit = 20,
     before_id: int | None = None,
 ) -> AuditPage:
-    """Changes to one member and their completions. Visible to all users."""
     if db.get(Member, member_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Member not found")
     stmt = select(AuditEntry).where(AuditEntry.member_id == member_id)

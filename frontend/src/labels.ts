@@ -28,12 +28,19 @@ export function formatDate(iso: string | null): string {
   return `${d}.${m}.${y}`;
 }
 
-/** Whole days between two calendar dates (YYYY-MM-DD). Independent of time zone and DST. */
+/**
+ * Returns the number of calendar days between two dates. Only the date part is used, so time zones and daylight saving
+ * time have no effect.
+ */
 export function daysUntil(iso: string | null, today: string): number | null {
   if (!iso) return null;
   return Math.round((Date.parse(iso.slice(0, 10)) - Date.parse(today.slice(0, 10))) / 86_400_000);
 }
 
+/**
+ * Returns the configured abbreviation of a certification. Without one, the initials of a name with several words or
+ * the first four letters of a single word are used.
+ */
 export function shortName(name: string, short: string): string {
   if (short) return short;
   const words = name.split(/[\s-]+/).filter(Boolean);
@@ -51,6 +58,10 @@ export function certShortName(certs: ReadonlyMap<number, Certification>, id: num
   return c ? shortName(c.name, c.short_name) : "?";
 }
 
+/**
+ * Returns the short text shown in a matrix cell, for example the expiry date, the remaining days or the date since
+ * when a certification is expired.
+ */
 export function cellHint(status: CellStatus, expires: string | null, today: string): string {
   if (status === "missing") return "fehlt";
   if (status === "not_required") return expires ? formatDate(expires) : "";
@@ -70,7 +81,6 @@ const dateTimeFormat = new Intl.DateTimeFormat("de-DE", {
   minute: "2-digit",
 });
 
-/** Formats a server timestamp (UTC) in German local time. */
 export function formatDateTime(iso: string): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? "–" : dateTimeFormat.format(d);

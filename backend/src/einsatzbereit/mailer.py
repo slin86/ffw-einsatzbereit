@@ -1,5 +1,3 @@
-"""Outgoing mail. Falls back to logging if no SMTP host is configured."""
-
 import logging
 import smtplib
 from email.message import EmailMessage
@@ -10,6 +8,11 @@ log = logging.getLogger(__name__)
 
 
 def send_mail(to: str, subject: str, body: str) -> None:
+    """
+    Sends a plain text mail through the configured SMTP relay. Without an SMTP host the mail is
+    only written to the log. Delivery errors are logged instead of raised, so a failing relay
+    never breaks a request.
+    """
     s = get_settings()
     if not s.smtp_host:
         log.warning("SMTP not configured – mail to %s not sent. Subject: %s", to, subject)

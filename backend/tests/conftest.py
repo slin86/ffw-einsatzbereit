@@ -3,8 +3,8 @@ import os
 os.environ["EB_DATABASE_URL"] = "sqlite://"
 os.environ["EB_COOKIE_SECURE"] = "false"
 os.environ["EB_STATIC_DIR"] = ""
-os.environ["EB_INITIAL_ADMIN_EMAIL"] = "admin@example.org"
-os.environ["EB_INITIAL_ADMIN_PASSWORD"] = "admin-password-123"
+os.environ["EB_INITIAL_ADMIN_EMAIL"] = ""
+os.environ["EB_INITIAL_ADMIN_PASSWORD"] = ""
 
 from collections.abc import Iterator
 
@@ -17,7 +17,7 @@ from sqlalchemy.pool import StaticPool
 from einsatzbereit import db as db_module
 from einsatzbereit.db import Base, get_db
 from einsatzbereit.main import create_app
-from einsatzbereit.models import User, UserRole
+from einsatzbereit.models import AppState, User, UserRole
 from einsatzbereit.security import hash_password
 
 ADMIN = ("admin@example.org", "admin-password-123")
@@ -65,17 +65,26 @@ def client(session_factory: sessionmaker[Session]) -> Iterator[TestClient]:
             yield s
 
     app.dependency_overrides[get_db] = _get_db
-    with TestClient(app) as c:
-        with session_factory() as s:
-            s.add(
+    with session_factory() as s:
+        s.add_all(
+            [
+                AppState(id=1, initialized=True),
+                User(
+                    email=ADMIN[0],
+                    display_name="Administrator",
+                    role=UserRole.ADMIN,
+                    password_hash=hash_password(ADMIN[1]),
+                ),
                 User(
                     email=USER[0],
                     display_name="Anwender",
                     role=UserRole.USER,
                     password_hash=hash_password(USER[1]),
-                )
-            )
-            s.commit()
+                ),
+            ]
+        )
+        s.commit()
+    with TestClient(app) as c:
         yield c
 
 

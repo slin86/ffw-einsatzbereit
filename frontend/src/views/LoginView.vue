@@ -15,6 +15,10 @@ const mfaToken = ref<string | null>(null);
 const error = ref("");
 const busy = ref(false);
 
+/**
+ * Handles both login steps. The first submit checks the password and may ask for a TOTP code, the second submit sends
+ * the code.
+ */
 async function submit(): Promise<void> {
   busy.value = true;
   error.value = "";

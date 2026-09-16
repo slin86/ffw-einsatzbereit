@@ -63,6 +63,10 @@ function toggle(id: number): void {
   selected.value = next;
 }
 
+/**
+ * Selects all members currently shown, or clears them if all of them are already selected. Hidden members keep their
+ * selection.
+ */
 function toggleAllVisible(): void {
   const next = new Set(selected.value);
   const select = !allVisibleSelected.value;
@@ -82,6 +86,10 @@ const canSubmit = computed(
     (!needsExpiry.value || !!form.value.manual_expires_on),
 );
 
+/**
+ * Records the selected members and reports how many entries were created. Members that already had an entry on that
+ * date are reported as skipped.
+ */
 async function submit(): Promise<void> {
   error.value = "";
   notice.value = "";

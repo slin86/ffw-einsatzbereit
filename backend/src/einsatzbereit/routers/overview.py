@@ -1,5 +1,3 @@
-"""Status matrix and exports. Both share the same filter parameters."""
-
 from datetime import date
 from typing import Annotated, Literal
 
@@ -43,6 +41,10 @@ Filter = Annotated[MatrixFilter, Depends(matrix_filter)]
 
 
 def describe_filter(db: Session, flt: MatrixFilter) -> str:
+    """
+    Describes the active filter in German for the header of exported files. Unknown position or
+    certification ids are left out.
+    """
     parts: list[str] = []
     if flt.only_open:
         parts.append("nur offene")
@@ -91,6 +93,10 @@ _MEDIA = {
 def export_matrix(
     fmt: Literal["csv", "xlsx", "pdf"], _: CurrentUser, db: DbSession, flt: Filter
 ) -> Response:
+    """
+    Exports the status matrix as CSV, Excel or PDF with exactly the same filter parameters as the
+    overview.
+    """
     matrix = build_matrix(db, flt)
     description = describe_filter(db, flt)
     if fmt == "csv":

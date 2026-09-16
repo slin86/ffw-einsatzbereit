@@ -1,5 +1,3 @@
-"""FastAPI dependencies: DB session and authentication."""
-
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -19,6 +17,11 @@ def current_user(
     db: DbSession,
     creds: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> User:
+    """
+    Resolves the logged in user from the bearer token. The token must be a valid access token and
+    its version must match the user, so tokens issued before a password change, a role change or
+    a deactivation are rejected.
+    """
     unauthorized = HTTPException(
         status.HTTP_401_UNAUTHORIZED, "Not authenticated", headers={"WWW-Authenticate": "Bearer"}
     )

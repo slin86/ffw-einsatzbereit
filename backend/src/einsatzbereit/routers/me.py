@@ -1,5 +1,3 @@
-"""Endpoints for the logged-in user: profile, password, 2FA."""
-
 from fastapi import APIRouter, HTTPException, status
 
 from einsatzbereit.deps import CurrentUser, DbSession
@@ -29,6 +27,7 @@ def me(user: CurrentUser) -> UserOut:
 
 @router.post("/password", status_code=status.HTTP_204_NO_CONTENT)
 def change_password(body: PasswordChange, user: CurrentUser, db: DbSession) -> None:
+    """Changes the password after checking the current one and signs the user out on all devices."""
     if not verify_password(body.current_password, user.password_hash):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Current password is wrong")
     user.password_hash = hash_password(body.new_password)
@@ -38,6 +37,10 @@ def change_password(body: PasswordChange, user: CurrentUser, db: DbSession) -> N
 
 @router.post("/totp/setup", response_model=TotpSetupResponse)
 def totp_setup(user: CurrentUser, db: DbSession) -> TotpSetupResponse:
+    """
+    Generates a new TOTP secret for the authenticator app. Two factor authentication stays
+    disabled until the user confirms a valid code.
+    """
     if user.totp_enabled:
         raise HTTPException(status.HTTP_409_CONFLICT, "2FA already enabled")
     user.totp_secret = new_totp_secret()
@@ -60,6 +63,10 @@ def totp_enable(body: TotpCode, user: CurrentUser, db: DbSession) -> UserOut:
 
 @router.post("/totp/disable", response_model=UserOut)
 def totp_disable(body: TotpDisable, user: CurrentUser, db: DbSession) -> UserOut:
+    """
+    Disables two factor authentication. Requires the password and a current code, so a stolen
+    session alone cannot remove the second factor.
+    """
     if not (user.totp_enabled and user.totp_secret):
         raise HTTPException(status.HTTP_409_CONFLICT, "2FA not enabled")
     if not verify_password(body.password, user.password_hash) or not verify_totp(
