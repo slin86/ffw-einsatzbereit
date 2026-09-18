@@ -4,7 +4,6 @@ namespace: einsatzbereit
 resources:
   - namespace.yaml
   - infisical-secret.yaml
-  - postgres.yaml
   - app.yaml
 images:
   - name: ghcr.io/slin86/einsatzbereit

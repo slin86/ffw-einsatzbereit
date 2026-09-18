@@ -67,8 +67,8 @@ CI runs the tests on both databases and checks that `alembic upgrade head`, `ale
    | Key | Value |
    |---|---|
    | `EB_JWT_SECRET` | `openssl rand -base64 48`; the app refuses to start with the dev default |
-   | `POSTGRES_PASSWORD` | random |
-   | `EB_DATABASE_URL` | `postgresql+psycopg://einsatzbereit:<POSTGRES_PASSWORD>@postgres:5432/einsatzbereit` |
+   | `EB_DATABASE_URL` | `postgresql+psycopg://einsatzbereit:<password>@<postgres service>.<namespace>.svc.cluster.local:5432/einsatzbereit` |
+   | `EB_DATABASE_PASSWORD` | the same password, only needed for the optional backup job |
    | `EB_INITIAL_ADMIN_USERNAME`, `EB_INITIAL_ADMIN_EMAIL`, `EB_INITIAL_ADMIN_PASSWORD` | first admin, used only by the initial seed; the username defaults to `admin` |
    | `EB_SMTP_HOST`, `EB_SMTP_PORT`, `EB_SMTP_USERNAME`, `EB_SMTP_PASSWORD`, `EB_SMTP_FROM` | mail relay for password resets; empty host logs the link instead |
 
@@ -82,12 +82,30 @@ CI runs the tests on both databases and checks that `alembic upgrade head`, `ale
 Public URL: `https://einsatzbereit.slin.io`, exposed through Traefik with the existing
 `*.slin.io` wildcard certificate.
 
+### Database
+
+The app uses the shared PostgreSQL instance in the cluster and needs its own role and database
+there. Create them once, for example from the Postgres pod:
+
+```bash
+kubectl -n <postgres namespace> exec -it <postgres pod> -- psql -U postgres \
+  -c "CREATE ROLE einsatzbereit WITH LOGIN PASSWORD 'the password from EB_DATABASE_URL';" \
+  -c "CREATE DATABASE einsatzbereit OWNER einsatzbereit;"
+kubectl -n <postgres namespace> exec -it <postgres pod> -- \
+  psql -U postgres -d einsatzbereit -c "GRANT ALL ON SCHEMA public TO einsatzbereit;"
+```
+
+The role owns its own database and needs no rights beyond it. Tables are created by Alembic on
+container start. Percent encode special characters of the password inside `EB_DATABASE_URL`,
+an at sign becomes `%40`.
+
 Design decisions in `deploy/`:
 
-- PostgreSQL uses `local-path` storage on the NUC: Postgres on NFS is fragile and the NAS
-  disks use deep sleep. Backups go to the NAS once per night via `backup-cronjob.yaml`.
+- No PostgreSQL of its own, the cluster instance is used with a separate database.
 - The app runs as a single replica with `Recreate` strategy, because migrations run on
   container start.
+- `backup-cronjob.yaml` is optional and only useful if the shared instance is not backed up
+  already.
 
 ## Initial seed
 
