@@ -3,7 +3,15 @@ import { describe, expect, it } from "vitest";
 import { accessGuard, safeNext } from "./guard";
 import type { User } from "./types";
 
-const base: User = { id: 1, email: "a@b.de", display_name: "A", role: "user", is_active: true, totp_enabled: false };
+const base: User = {
+  id: 1,
+  username: "a",
+  email: "a@b.de",
+  display_name: "A",
+  role: "user",
+  is_active: true,
+  totp_enabled: false,
+};
 const admin: User = { ...base, role: "admin" };
 
 const route = (fullPath: string, meta: Record<string, boolean> = {}) => ({ fullPath, meta });

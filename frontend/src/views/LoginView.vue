@@ -8,7 +8,7 @@ import { login, loginMfa } from "../session";
 
 const route = useRoute();
 const router = useRouter();
-const email = ref("");
+const name = ref("");
 const password = ref("");
 const code = ref("");
 const mfaToken = ref<string | null>(null);
@@ -26,7 +26,7 @@ async function submit(): Promise<void> {
     if (mfaToken.value) {
       await loginMfa(mfaToken.value, code.value);
     } else {
-      mfaToken.value = await login(email.value, password.value);
+      mfaToken.value = await login(name.value, password.value);
       if (mfaToken.value) return;
     }
     await router.replace(safeNext(route.query.next));
@@ -49,7 +49,10 @@ async function submit(): Promise<void> {
       <p class="muted">Nachweise der Kameraden im Blick.</p>
 
       <template v-if="!mfaToken">
-        <label>E-Mail <input v-model="email" type="email" autocomplete="username" required /></label>
+        <label>
+          Benutzername oder E-Mail
+          <input v-model="name" type="text" autocomplete="username" required />
+        </label>
         <label>
           Passwort
           <input v-model="password" type="password" autocomplete="current-password" required />

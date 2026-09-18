@@ -1,10 +1,16 @@
 from datetime import date, datetime
-from typing import Any, Self
+from typing import Annotated, Any, Self
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 from einsatzbereit.models import CertificationKind, UserRole, ValidityMode
 from einsatzbereit.services.status import CellStatus
+
+Username = Annotated[
+    str,
+    Field(min_length=3, max_length=32, pattern=r"^[A-Za-z0-9._-]+$"),
+    AfterValidator(str.lower),
+]
 
 
 class ORMModel(BaseModel):
@@ -12,7 +18,7 @@ class ORMModel(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    login: str = Field(min_length=1, max_length=255)
     password: str
 
 
@@ -58,6 +64,7 @@ class TotpDisable(BaseModel):
 
 class UserOut(ORMModel):
     id: int
+    username: str
     email: str
     display_name: str
     role: UserRole
@@ -66,6 +73,7 @@ class UserOut(ORMModel):
 
 
 class UserCreate(BaseModel):
+    username: Username
     email: EmailStr
     display_name: str = Field(min_length=1, max_length=120)
     role: UserRole = UserRole.USER
@@ -73,6 +81,7 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    username: Username | None = None
     display_name: str | None = Field(default=None, min_length=1, max_length=120)
     role: UserRole | None = None
     is_active: bool | None = None
@@ -186,6 +195,14 @@ class BulkCompletionIn(BaseModel):
 
 class BulkCompletionOut(BaseModel):
     created: int
+
+
+class MemberIdsIn(BaseModel):
+    member_ids: list[int] = Field(min_length=1, max_length=500)
+
+
+class DeletedOut(BaseModel):
+    deleted: int
 
 
 class CompletionOut(BaseModel):

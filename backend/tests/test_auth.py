@@ -34,9 +34,9 @@ def test_logout_revokes(client: TestClient) -> None:
 
 def test_wrong_password_and_lockout(client: TestClient) -> None:
     for _ in range(5):
-        r = client.post("/api/auth/login", json={"email": USER[0], "password": "wrong-password"})
+        r = client.post("/api/auth/login", json={"login": USER[0], "password": "wrong-password"})
         assert r.status_code == 401
-    r = client.post("/api/auth/login", json={"email": USER[0], "password": USER[1]})
+    r = client.post("/api/auth/login", json={"login": USER[0], "password": USER[1]})
     assert r.status_code == 401
 
 
@@ -52,7 +52,7 @@ def test_totp_flow(client: TestClient) -> None:
         "totp_enabled"
     ]
 
-    r = client.post("/api/auth/login", json={"email": USER[0], "password": USER[1]}).json()
+    r = client.post("/api/auth/login", json={"login": USER[0], "password": USER[1]}).json()
     assert r["mfa_required"] and r["access_token"] is None
     bad = client.post("/api/auth/login/mfa", json={"mfa_token": r["mfa_token"], "code": "123456"})
     assert bad.status_code == 401

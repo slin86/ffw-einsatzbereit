@@ -70,12 +70,14 @@ def client(session_factory: sessionmaker[Session]) -> Iterator[TestClient]:
             [
                 AppState(id=1, initialized=True),
                 User(
+                    username="admin",
                     email=ADMIN[0],
                     display_name="Administrator",
                     role=UserRole.ADMIN,
                     password_hash=hash_password(ADMIN[1]),
                 ),
                 User(
+                    username="anwender",
                     email=USER[0],
                     display_name="Anwender",
                     role=UserRole.USER,
@@ -89,7 +91,7 @@ def client(session_factory: sessionmaker[Session]) -> Iterator[TestClient]:
 
 
 def login(client: TestClient, creds: tuple[str, str]) -> dict[str, str]:
-    r = client.post("/api/auth/login", json={"email": creds[0], "password": creds[1]})
+    r = client.post("/api/auth/login", json={"login": creds[0], "password": creds[1]})
     assert r.status_code == 200, r.text
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 

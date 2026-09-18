@@ -110,11 +110,12 @@ def _revoke_family(db: DbSession, family_id: str) -> None:
 @router.post("/login", response_model=TokenResponse)
 def login(body: LoginRequest, response: Response, db: DbSession) -> TokenResponse:
     """
-    Checks email and password. Unknown addresses still run a password hash, so response times do
-    not reveal which accounts exist. Users with two factor authentication get a short lived MFA
-    token instead of access tokens.
+    Checks the password for a login that is either a username or an email address. Unknown logins
+    still run a password hash, so response times do not reveal which accounts exist. Users with two
+    factor authentication get a short lived MFA token instead of access tokens.
     """
-    user = db.scalar(select(User).where(User.email == body.email.lower()))
+    name = body.login.strip().lower()
+    user = db.scalar(select(User).where((User.username == name) | (User.email == name)))
     if user is None:
         verify_password(body.password, _TIMING_DUMMY_HASH)
         raise _invalid()

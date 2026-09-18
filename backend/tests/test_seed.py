@@ -138,6 +138,6 @@ def test_application_start_seeds_once(
         assert count(db, User) == 1
         row = state(db)
         assert row is not None and row.initialized is True
-    login = {"email": "chief@example.org", "password": "chief-password-1"}
+    login = {"login": "admin", "password": "chief-password-1"}
     with TestClient(create_app()) as client:
         assert client.post("/api/auth/login", json=login).status_code == 200

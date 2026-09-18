@@ -95,7 +95,7 @@ export const ERROR_TEXT: Readonly<Record<string, string>> = {
   "Admin role required": "Dafür brauchst du Admin-Rechte.",
   "Number already in use": "Diese Nr ist schon vergeben.",
   "Name already in use": "Dieser Name ist schon vergeben.",
-  "E-mail already in use": "Diese E-Mail ist schon vergeben.",
+  "Username or e-mail already in use": "Benutzername oder E-Mail ist schon vergeben.",
   "Current password is wrong": "Das aktuelle Passwort stimmt nicht.",
   "Invalid code": "Der Code stimmt nicht. Prüfe die Uhrzeit auf dem Handy.",
   "Invalid password or code": "Passwort oder Code stimmen nicht.",

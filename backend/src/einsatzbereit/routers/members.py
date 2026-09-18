@@ -1,12 +1,13 @@
 from datetime import date
 
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
-from einsatzbereit.deps import CurrentUser, DbSession
+from einsatzbereit.deps import AdminUser, CurrentUser, DbSession
 from einsatzbereit.models import (
+    AuditEntry,
     Certification,
     Completion,
     Member,
@@ -21,7 +22,9 @@ from einsatzbereit.schemas import (
     CellOut,
     CompletionIn,
     CompletionOut,
+    DeletedOut,
     MemberDetailOut,
+    MemberIdsIn,
     MemberIn,
     MemberOut,
 )
@@ -135,6 +138,44 @@ def update_member(member_id: int, body: MemberIn, user: CurrentUser, db: DbSessi
     )
     db.commit()
     return member
+
+
+def _delete_members(db: DbSession, admin: User, members: list[Member]) -> int:
+    """
+    Deletes members with all their completions and their entries in the change log, and writes
+    one final log entry per member. The final entry has no member reference, so it survives and
+    keeps the deletion visible in the log.
+    """
+    for member in members:
+        label = audit.member_label(member)
+        snapshot = audit.member_snapshot(member)
+        db.execute(delete(AuditEntry).where(AuditEntry.member_id == member.id))
+        db.delete(member)
+        db.flush()
+        audit.record(db, admin, EntityType.MEMBER, member.id, label, Action.DELETE, before=snapshot)
+    db.commit()
+    return len(members)
+
+
+@router.delete("/members/{member_id}", response_model=DeletedOut)
+def delete_member(member_id: int, admin: AdminUser, db: DbSession) -> DeletedOut:
+    """
+    Removes a member permanently. Admins only. Deactivating a member keeps the history and is
+    the usual way to retire someone.
+    """
+    return DeletedOut(deleted=_delete_members(db, admin, [_get_member(db, member_id)]))
+
+
+@router.post("/members/delete", response_model=DeletedOut)
+def delete_members(body: MemberIdsIn, admin: AdminUser, db: DbSession) -> DeletedOut:
+    """
+    Removes several members permanently in one transaction. Admins only. Unknown ids are
+    rejected, so a stale list never deletes a wrong subset.
+    """
+    members = list(db.scalars(select(Member).where(Member.id.in_(body.member_ids))))
+    if {m.id for m in members} != set(body.member_ids):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Unknown member id")
+    return DeletedOut(deleted=_delete_members(db, admin, members))
 
 
 @router.get("/members/{member_id}", response_model=MemberDetailOut)

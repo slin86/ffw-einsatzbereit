@@ -12,6 +12,7 @@ import type { User } from "./types";
 
 const user: User = {
   id: 1,
+  username: "anna",
   email: "a@example.org",
   display_name: "Anna",
   role: "user",
@@ -55,7 +56,7 @@ describe("login", () => {
     apiMock.api.mockResolvedValueOnce(user);
     await expect(login("a@example.org", "pw")).resolves.toBeNull();
     expect(apiMock.api).toHaveBeenNthCalledWith(1, "/api/auth/login", "POST", {
-      email: "a@example.org",
+      login: "a@example.org",
       password: "pw",
     });
     expect(apiMock.setAccessToken).toHaveBeenCalledWith("t");

@@ -6,8 +6,11 @@ import { session } from "../../session";
 import type { Role, User } from "../../types";
 
 const users = ref<User[]>([]);
-const draft = ref({ email: "", display_name: "", role: "user" as Role, password: "" });
+const draft = ref({ username: "", email: "", display_name: "", role: "user" as Role, password: "" });
+const editing = ref<User | null>(null);
+const rename = ref("");
 const dialog = ref<HTMLDialogElement | null>(null);
+const renameDialog = ref<HTMLDialogElement | null>(null);
 const error = ref("");
 const listError = ref("");
 const notice = ref("");
@@ -18,9 +21,27 @@ async function load(): Promise<void> {
 onMounted(load);
 
 function open(): void {
-  draft.value = { email: "", display_name: "", role: "user", password: "" };
+  draft.value = { username: "", email: "", display_name: "", role: "user", password: "" };
   error.value = "";
   dialog.value?.showModal();
+}
+
+function openRename(u: User): void {
+  editing.value = u;
+  rename.value = u.username;
+  error.value = "";
+  renameDialog.value?.showModal();
+}
+
+async function saveRename(): Promise<void> {
+  error.value = "";
+  try {
+    await api(`/api/users/${editing.value?.id}`, "PATCH", { username: rename.value });
+    renameDialog.value?.close();
+    await load();
+  } catch (e) {
+    error.value = errorText(e);
+  }
 }
 
 async function create(): Promise<void> {
@@ -62,8 +83,8 @@ const sendReset = (u: User) =>
       <button @click="open()">Benutzer anlegen</button>
     </div>
     <p class="lede">
-      Benutzer melden sich an und pflegen Kameraden und Abschlüsse. Admins verwalten zusätzlich Nachweise, Funktionen
-      und Benutzer. Kameraden selbst brauchen kein Konto.
+      Benutzer melden sich mit ihrem Benutzernamen oder ihrer E-Mail an und pflegen Kameraden und Abschlüsse. Admins
+      verwalten zusätzlich Nachweise, Funktionen und Benutzer. Kameraden selbst brauchen kein Konto.
     </p>
     <p v-if="listError" class="error">{{ listError }}</p>
     <p v-if="notice" class="notice">{{ notice }}</p>
@@ -73,6 +94,7 @@ const sendReset = (u: User) =>
         <thead>
           <tr>
             <th>Name</th>
+            <th>Benutzername</th>
             <th>Rolle</th>
             <th>Zwei-Faktor</th>
             <th>Status</th>
@@ -85,6 +107,7 @@ const sendReset = (u: User) =>
               <strong>{{ u.display_name }}</strong>
               <div class="small muted">{{ u.email }}</div>
             </td>
+            <td>{{ u.username }}</td>
             <td>
               <select
                 :value="u.role"
@@ -98,6 +121,7 @@ const sendReset = (u: User) =>
             <td>{{ u.totp_enabled ? "aktiv" : "aus" }}</td>
             <td>{{ u.is_active ? "aktiv" : "gesperrt" }}</td>
             <td class="actions">
+              <button class="link" @click="openRename(u)">Umbenennen</button>
               <button class="link" @click="sendReset(u)">Passwort-Link senden</button>
               <button v-if="u.totp_enabled" class="link" @click="reset2fa(u)">2FA zurücksetzen</button>
               <button v-if="u.id !== session.user?.id" class="link" @click="setActive(u, !u.is_active)">
@@ -113,6 +137,19 @@ const sendReset = (u: User) =>
       <form class="dialog-body form" @submit.prevent="create">
         <h2>Benutzer anlegen</h2>
         <label>Name <input v-model="draft.display_name" required maxlength="120" /></label>
+        <label>
+          Benutzername für die Anmeldung
+          <input
+            v-model="draft.username"
+            type="text"
+            required
+            minlength="3"
+            maxlength="32"
+            pattern="[A-Za-z0-9._\-]+"
+            autocomplete="off"
+            placeholder="z. B. nils.h"
+          />
+        </label>
         <label>E-Mail <input v-model="draft.email" type="email" required autocomplete="off" /></label>
         <label>
           Rolle
@@ -130,6 +167,24 @@ const sendReset = (u: User) =>
         <div class="row">
           <button type="submit">Anlegen</button>
           <button type="button" class="secondary" @click="dialog?.close()">Abbrechen</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog ref="renameDialog">
+      <form class="dialog-body form" @submit.prevent="saveRename">
+        <h2>Benutzername ändern</h2>
+        <p class="muted small">
+          {{ editing?.display_name }} meldet sich danach mit dem neuen Namen an. Die E-Mail bleibt unverändert.
+        </p>
+        <label>
+          Benutzername
+          <input v-model="rename" type="text" required minlength="3" maxlength="32" pattern="[A-Za-z0-9._\-]+" />
+        </label>
+        <p v-if="error" class="error">{{ error }}</p>
+        <div class="row">
+          <button type="submit">Speichern</button>
+          <button type="button" class="secondary" @click="renameDialog?.close()">Abbrechen</button>
         </div>
       </form>
     </dialog>

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { RouterLink } from "vue-router";
+import { RouterLink, useRouter } from "vue-router";
 
 import { api, errorText } from "../api";
 import AuditList from "../components/AuditList.vue";
 import CompletionDialog from "../components/CompletionDialog.vue";
+import DeleteMembersDialog from "../components/DeleteMembersDialog.vue";
 import MemberDialog from "../components/MemberDialog.vue";
 import StatusPeg from "../components/StatusPeg.vue";
 import { cellHint, certShortName, formatDate, KIND_LABEL, STATUS_LABEL } from "../labels";
@@ -13,6 +14,8 @@ import type { Certification, Completion, MemberDetail, Position } from "../types
 
 const props = defineProps<{ id: number }>();
 
+const router = useRouter();
+
 const detail = ref<MemberDetail | null>(null);
 const certifications = ref<Certification[]>([]);
 const positions = ref<Position[]>([]);
@@ -20,6 +23,12 @@ const error = ref("");
 const memberDialog = ref<InstanceType<typeof MemberDialog> | null>(null);
 const completionDialog = ref<InstanceType<typeof CompletionDialog> | null>(null);
 const auditList = ref<InstanceType<typeof AuditList> | null>(null);
+const deleteDialog = ref<InstanceType<typeof DeleteMembersDialog> | null>(null);
+const isAdmin = computed(() => session.user?.role === "admin");
+
+async function onDeleted(): Promise<void> {
+  await router.push("/kameraden");
+}
 const showAudit = ref(false);
 
 async function reloadAll(): Promise<void> {
@@ -83,6 +92,7 @@ async function remove(entry: Completion): Promise<void> {
         <div class="row">
           <button @click="completionDialog?.open()">Abschluss eintragen</button>
           <button class="secondary" @click="memberDialog?.open()">Bearbeiten</button>
+          <button v-if="isAdmin" class="danger" @click="deleteDialog?.open([detail!.member])">Löschen</button>
         </div>
       </div>
 
@@ -153,6 +163,7 @@ async function remove(entry: Completion): Promise<void> {
         </details>
       </section>
 
+      <DeleteMembersDialog ref="deleteDialog" @deleted="onDeleted" />
       <MemberDialog ref="memberDialog" :member="detail.member" :positions="positions" @saved="reloadAll" />
       <CompletionDialog
         ref="completionDialog"

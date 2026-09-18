@@ -21,8 +21,8 @@ export async function restoreSession(): Promise<void> {
  * First login step. Returns an MFA token if a second factor is required, otherwise stores the access token, loads the
  * user and returns null.
  */
-export async function login(email: string, password: string): Promise<string | null> {
-  const res = await api<TokenResponse>("/api/auth/login", "POST", { email, password });
+export async function login(name: string, password: string): Promise<string | null> {
+  const res = await api<TokenResponse>("/api/auth/login", "POST", { login: name, password });
   if (res.mfa_required) return res.mfa_token;
   await finishLogin(res);
   return null;

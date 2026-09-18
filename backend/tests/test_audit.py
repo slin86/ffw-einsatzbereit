@@ -113,7 +113,12 @@ def test_catalog_and_user_changes_are_logged(
     user = client.post(
         "/api/users",
         headers=admin_headers,
-        json={"email": "neu@example.org", "display_name": "Neu", "password": "secret-password-1"},
+        json={
+            "username": "neu",
+            "email": "neu@example.org",
+            "display_name": "Neu",
+            "password": "secret-password-1",
+        },
     ).json()
     client.patch(f"/api/users/{user['id']}", headers=admin_headers, json={"role": "admin"})
 
@@ -133,6 +138,7 @@ def test_catalog_and_user_changes_are_logged(
     assert entries[4]["changes"] == {"certifications": [[], ["UVV"]]}
     assert entries[6]["changes"] == {"warn_days": [60, 30]}
     assert set(entries[1]["changes"]) == {
+        "username",
         "email",
         "display_name",
         "role",

@@ -13,6 +13,14 @@ from einsatzbereit.services.audit import Action, EntityType
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
+def _flush(db: DbSession) -> None:
+    try:
+        db.flush()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "Username or e-mail already in use") from exc
+
+
 def _get(db: DbSession, user_id: int) -> User:
     user = db.get(User, user_id)
     if user is None:
@@ -33,6 +41,7 @@ def list_users(_: AdminUser, db: DbSession) -> list[User]:
 @router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def create_user(body: UserCreate, admin: AdminUser, db: DbSession) -> User:
     user = User(
+        username=body.username,
         email=body.email.lower(),
         display_name=body.display_name,
         role=body.role,
@@ -41,11 +50,7 @@ def create_user(body: UserCreate, admin: AdminUser, db: DbSession) -> User:
         totp_enabled=False,
     )
     db.add(user)
-    try:
-        db.flush()
-    except IntegrityError as exc:
-        db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, "E-mail already in use") from exc
+    _flush(db)
     audit.record(
         db,
         admin,
@@ -62,9 +67,9 @@ def create_user(body: UserCreate, admin: AdminUser, db: DbSession) -> User:
 @router.patch("/{user_id}", response_model=UserOut)
 def update_user(user_id: int, body: UserUpdate, admin: AdminUser, db: DbSession) -> User:
     """
-    Changes name, role or active flag of a user. The last active admin cannot be demoted or
-    deactivated. Deactivation and role changes of other users revoke their sessions, so the
-    change takes effect immediately.
+    Changes username, display name, role or active flag of a user. The last active admin cannot be
+    demoted or deactivated. Deactivation and role changes of other users revoke their sessions, so
+    the change takes effect immediately.
     """
     user = _get(db, user_id)
     demotes_admin = user.role == UserRole.ADMIN and (
@@ -75,6 +80,7 @@ def update_user(user_id: int, body: UserUpdate, admin: AdminUser, db: DbSession)
     before = audit.user_snapshot(user)
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(user, field, value)
+    _flush(db)
     if body.is_active is False or (body.role is not None and user.id != admin.id):
         revoke_all_sessions(db, user)
     audit.record(

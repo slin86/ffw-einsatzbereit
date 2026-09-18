@@ -5,6 +5,7 @@ export type ValidityMode = "unlimited" | "fixed_duration" | "end_of_year" | "man
 
 export interface User {
   id: number;
+  username: string;
   email: string;
   display_name: string;
   role: Role;

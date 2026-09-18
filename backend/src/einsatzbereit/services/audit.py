@@ -85,6 +85,7 @@ def position_snapshot(p: Position) -> Snapshot:
 
 def user_snapshot(u: User) -> Snapshot:
     return {
+        "username": u.username,
         "email": u.email,
         "display_name": u.display_name,
         "role": _json(u.role),

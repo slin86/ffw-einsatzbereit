@@ -8,7 +8,9 @@ what is missing or about to expire. Mobile first, works well on a laptop too.
   only open, include inactive) and CSV / Excel / PDF export of exactly that selection
 - **Erfassen** – record one completion for many members at once (e.g. after an exercise);
   re-submitting the same date is idempotent
-- **Kameraden** – member management with positions and full completion history
+- **Kameraden** – member management with positions and full completion history; admins can
+  delete members, one at a time or several at once, after typing a confirmation word
+- **Login** with username or email address
 - **Offen** can be narrowed to one position (Funktion); the choice is kept in the URL
 - **Änderungen / Protokoll** – change log: who changed which member, completion,
   certification, position or user, and when. Per member for all users, complete log for admins
@@ -67,7 +69,7 @@ CI runs the tests on both databases and checks that `alembic upgrade head`, `ale
    | `EB_JWT_SECRET` | `openssl rand -base64 48`; the app refuses to start with the dev default |
    | `POSTGRES_PASSWORD` | random |
    | `EB_DATABASE_URL` | `postgresql+psycopg://einsatzbereit:<POSTGRES_PASSWORD>@postgres:5432/einsatzbereit` |
-   | `EB_INITIAL_ADMIN_EMAIL`, `EB_INITIAL_ADMIN_PASSWORD` | first admin, used only by the initial seed |
+   | `EB_INITIAL_ADMIN_USERNAME`, `EB_INITIAL_ADMIN_EMAIL`, `EB_INITIAL_ADMIN_PASSWORD` | first admin, used only by the initial seed; the username defaults to `admin` |
    | `EB_SMTP_HOST`, `EB_SMTP_PORT`, `EB_SMTP_USERNAME`, `EB_SMTP_PASSWORD`, `EB_SMTP_FROM` | mail relay for password resets; empty host logs the link instead |
 
 3. Replace all `CHANGE-ME` values in `deploy/base/infisical-secret.yaml`.
@@ -111,6 +113,10 @@ Never enable `EB_SEED_DEMO_DATA` in production.
 
 - The change log starts with migration `0003`; earlier changes and data created by the
   initial seed have no log entries.
+- Deleting a member removes the member, all completions and all log entries of that member,
+  and writes one final log entry that stays. Deactivating keeps everything and is the usual
+  way to retire someone.
+- Migration `0005` derives usernames of existing accounts from the email address.
 - Log entries are kept indefinitely. At ~50 members this stays small; add a retention
   job if that ever matters.
 

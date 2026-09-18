@@ -42,11 +42,11 @@ class TestAuth:
     def test_inactive_and_locked_users_cannot_log_in(self, client: TestClient, db: Session) -> None:
         db.execute(update(User).where(User.email == USER[0]).values(is_active=False))
         db.commit()
-        r = client.post("/api/auth/login", json={"email": USER[0], "password": USER[1]})
+        r = client.post("/api/auth/login", json={"login": USER[0], "password": USER[1]})
         assert r.status_code == 401
 
     def test_unknown_user(self, client: TestClient) -> None:
-        r = client.post("/api/auth/login", json={"email": "x@example.org", "password": "whatever"})
+        r = client.post("/api/auth/login", json={"login": "x@example.org", "password": "whatever"})
         assert r.status_code == 401
         assert r.json()["detail"] == "Invalid credentials"
 
@@ -72,7 +72,7 @@ class TestAuth:
             .values(locked_until=now_utc() + timedelta(minutes=5))
         )
         db.commit()
-        r = client.post("/api/auth/login", json={"email": USER[0], "password": USER[1]})
+        r = client.post("/api/auth/login", json={"login": USER[0], "password": USER[1]})
         assert r.status_code == 401
 
     def test_logout_without_cookie(self, client: TestClient) -> None:
@@ -190,8 +190,17 @@ class TestUsers:
         self, client: TestClient, admin_headers: dict[str, str], db: Session
     ) -> None:
         uid = _user_id(db, USER[0])
-        dup = {"email": USER[0].upper(), "display_name": "X", "password": "password-123"}
-        assert client.post("/api/users", headers=admin_headers, json=dup).status_code == 409
+        dup_mail = {
+            "username": "neu",
+            "email": USER[0].upper(),
+            "display_name": "X",
+            "password": "password-123",
+        }
+        assert client.post("/api/users", headers=admin_headers, json=dup_mail).status_code == 409
+        dup_name = {**dup_mail, "username": "Anwender", "email": "neu@example.org"}
+        assert client.post("/api/users", headers=admin_headers, json=dup_name).status_code == 409
+        bad_name = {**dup_mail, "username": "mit leerzeichen", "email": "neu@example.org"}
+        assert client.post("/api/users", headers=admin_headers, json=bad_name).status_code == 422
         assert client.patch("/api/users/9999", headers=admin_headers, json={}).status_code == 404
         assert client.post("/api/users/9999/reset-2fa", headers=admin_headers).status_code == 404
 

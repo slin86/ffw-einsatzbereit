@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     smtp_starttls: bool = True
     smtp_from: str = "einsatzbereit@slin.io"
 
+    initial_admin_username: str = "admin"
     initial_admin_email: str = ""
     initial_admin_password: str = ""
     seed_demo_data: bool = False

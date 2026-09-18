@@ -227,6 +227,7 @@ def run_initial_seed(db: Session) -> bool:
         )
         return False
     admin = User(
+        username=s.initial_admin_username.lower(),
         email=s.initial_admin_email.lower(),
         display_name="Administrator",
         password_hash=hash_password(s.initial_admin_password),
