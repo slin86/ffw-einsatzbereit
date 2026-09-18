@@ -4,3 +4,4 @@ namespace: einsatzbereit
 resources:
   - ../../base
   - ingress.yaml
+  - ingressroute.yaml

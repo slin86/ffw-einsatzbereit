@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: einsatzbereit.slin.io
+    - host: einsatzbereit.home.lan
       http:
         paths:
           - path: /

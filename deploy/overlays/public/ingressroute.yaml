@@ -1,0 +1,15 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: einsatzbereit
+  namespace: einsatzbereit
+spec:
+  entryPoints:
+    - public
+  routes:
+    - match: Host(`ffw-funk.slin.io`)
+      kind: Rule
+      services:
+        - name: einsatzbereit
+          port: 80
+  tls: {}
