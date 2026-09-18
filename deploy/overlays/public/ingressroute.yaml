@@ -7,7 +7,7 @@ spec:
   entryPoints:
     - public
   routes:
-    - match: Host(`ffw-funk.slin.io`)
+    - match: Host(`ffw-eb.slin.io`)
       kind: Rule
       services:
         - name: einsatzbereit
