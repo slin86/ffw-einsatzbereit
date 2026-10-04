@@ -64,7 +64,10 @@ export function certShortName(certs: ReadonlyMap<number, Certification>, id: num
  */
 export function cellHint(status: CellStatus, expires: string | null, today: string): string {
   if (status === "missing") return "fehlt";
-  if (status === "not_required") return expires ? formatDate(expires) : "";
+  if (status === "not_required") {
+    if (!expires) return "";
+    return (daysUntil(expires, today) ?? 0) < 0 ? `abgelaufen ${formatDate(expires)}` : formatDate(expires);
+  }
   if (!expires) return "unbefristet";
   const days = daysUntil(expires, today) ?? 0;
   if (status === "expired") return `seit ${formatDate(expires)}`;

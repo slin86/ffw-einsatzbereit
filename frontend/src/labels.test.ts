@@ -58,7 +58,8 @@ describe("cellHint", () => {
     expect(cellHint("expiring", "2026-09-30", today)).toBe("noch 14 T.");
     expect(cellHint("expiring", today, today)).toBe("heute");
     expect(cellHint("not_required", null, today)).toBe("");
-    expect(cellHint("not_required", "2025-01-01", today)).toBe("01.01.2025");
+    expect(cellHint("not_required", "2025-01-01", today)).toBe("abgelaufen 01.01.2025");
+    expect(cellHint("not_required", "2027-01-01", today)).toBe("01.01.2027");
   });
 });
 

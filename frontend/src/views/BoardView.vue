@@ -10,7 +10,7 @@ import StatusPeg from "../components/StatusPeg.vue";
 import { useMatrixFilter } from "../filter";
 import { cellHint, certShortName, formatDate, STATUS_LABEL } from "../labels";
 import { pageSize, setPageSize, usePaging } from "../paging";
-import type { Certification, Overview, Position } from "../types";
+import type { Cell, Certification, Overview, Position } from "../types";
 
 const { filter, update, reset, queryString } = useMatrixFilter();
 const data = ref<Overview | null>(null);
@@ -19,6 +19,10 @@ const allCerts = ref<Certification[]>([]);
 const error = ref("");
 const loading = ref(false);
 const exporting = ref("");
+
+function isLapsed(cell: Cell): boolean {
+  return cell.status === "not_required" && !!cell.expires_on && cell.expires_on < (data.value?.today ?? "");
+}
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -105,8 +109,8 @@ const certById = computed(() => new Map(certs.value.map((c) => [c.id, c])));
                 v-for="cell in row.cells"
                 :key="cell.certification_id"
                 class="cell"
-                :class="cell.status"
-                :title="STATUS_LABEL[cell.status]"
+                :class="[cell.status, { lapsed: isLapsed(cell) }]"
+                :title="isLapsed(cell) ? 'Abgelaufen, aber nicht erforderlich' : STATUS_LABEL[cell.status]"
               >
                 {{ cellHint(cell.status, cell.expires_on, data.today) }}
               </td>
@@ -222,6 +226,11 @@ const certById = computed(() => new Map(certs.value.map((c) => [c.id, c])));
 }
 .cell.not_required {
   color: var(--none-ink);
+}
+.cell.not_required.lapsed {
+  color: var(--bad-ink);
+  font-style: italic;
+  box-shadow: inset 0 0 0 1px var(--bad-ink);
 }
 tr.inactive th,
 tr.inactive td {
