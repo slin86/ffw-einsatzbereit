@@ -3,10 +3,12 @@ import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import { api, errorText } from "../api";
+import PagerBar from "../components/PagerBar.vue";
 import StatusCounts from "../components/StatusCounts.vue";
 import StatusPeg from "../components/StatusPeg.vue";
 import { EMPTY_FILTER, filterToSearch, parseFilter } from "../filter";
 import { cellHint, certShortName, formatDate } from "../labels";
+import { pageSize, setPageSize, usePaging } from "../paging";
 import { buildOpenRows } from "../todo";
 import type { Cell, Certification, Overview, Position } from "../types";
 
@@ -52,6 +54,7 @@ const certById = computed(
 );
 
 const openRows = computed(() => buildOpenRows(data.value?.rows ?? []));
+const paging = usePaging(openRows, positionId);
 const doneCount = computed(() => (data.value?.rows.length ?? 0) - openRows.value.length);
 const scope = computed(() => (position.value ? ` mit Funktion ${position.value.name}` : ""));
 
@@ -96,7 +99,7 @@ function certName(c: Cell): string {
     <StatusCounts v-if="data" :counts="data.counts" class="counts" />
 
     <ul v-if="openRows.length" class="list todo">
-      <li v-for="row in openRows" :key="row.member.id" :class="row.worst_status">
+      <li v-for="row in paging.pageItems.value" :key="row.member.id" :class="row.worst_status">
         <RouterLink :to="`/kameraden/${row.member.id}`" class="list-item">
           <div class="who">
             <strong>{{ row.member.last_name }}, {{ row.member.first_name }}</strong>
@@ -119,6 +122,15 @@ function certName(c: Cell): string {
       <p>Noch keine Kameraden erfasst.</p>
       <RouterLink to="/kameraden" class="button">Kameraden anlegen</RouterLink>
     </div>
+
+    <PagerBar
+      :total="paging.total.value"
+      :page="paging.page.value"
+      :count="paging.count.value"
+      :size="pageSize"
+      @update:page="paging.setPage"
+      @update:size="setPageSize"
+    />
   </div>
 </template>
 

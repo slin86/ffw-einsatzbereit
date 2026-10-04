@@ -2,8 +2,10 @@
 import { computed, onMounted, ref, watch } from "vue";
 
 import { api, errorText } from "../api";
+import PagerBar from "../components/PagerBar.vue";
 import StatusPeg from "../components/StatusPeg.vue";
 import { cellHint, shortName } from "../labels";
+import { pageSize, setPageSize, usePaging } from "../paging";
 import type { Certification, Overview } from "../types";
 
 const today = () => new Date().toLocaleDateString("sv-SE");
@@ -52,8 +54,10 @@ const rows = computed(() => {
     .filter((r) => !q || `${r.member.number} ${r.member.last_name} ${r.member.first_name}`.toLowerCase().includes(q));
 });
 
+const paging = usePaging(rows, () => `${form.value.certification_id}|${search.value}|${onlyRequired.value}`);
+
 const allVisibleSelected = computed(
-  () => rows.value.length > 0 && rows.value.every((r) => selected.value.has(r.member.id)),
+  () => paging.pageItems.value.length > 0 && paging.pageItems.value.every((r) => selected.value.has(r.member.id)),
 );
 
 function toggle(id: number): void {
@@ -64,13 +68,13 @@ function toggle(id: number): void {
 }
 
 /**
- * Selects all members currently shown, or clears them if all of them are already selected. Hidden members keep their
- * selection.
+ * Selects all members on the current page, or clears them if all of them are already selected. Members on other pages
+ * keep their selection.
  */
 function toggleAllVisible(): void {
   const next = new Set(selected.value);
   const select = !allVisibleSelected.value;
-  for (const r of rows.value) {
+  for (const r of paging.pageItems.value) {
     if (select) next.add(r.member.id);
     else next.delete(r.member.id);
   }
@@ -169,7 +173,7 @@ async function submit(): Promise<void> {
         <template v-if="onlyRequired">Blende auch Kameraden ein, die den Nachweis nicht brauchen.</template>
       </p>
       <ul v-else class="list picks">
-        <li v-for="r in rows" :key="r.member.id">
+        <li v-for="r in paging.pageItems.value" :key="r.member.id">
           <label class="pick" :class="{ on: selected.has(r.member.id) }">
             <input type="checkbox" :checked="selected.has(r.member.id)" @change="toggle(r.member.id)" />
             <span class="name">
@@ -188,6 +192,14 @@ async function submit(): Promise<void> {
           </label>
         </li>
       </ul>
+      <PagerBar
+        :total="paging.total.value"
+        :page="paging.page.value"
+        :count="paging.count.value"
+        :size="pageSize"
+        @update:page="paging.setPage"
+        @update:size="setPageSize"
+      />
     </section>
 
     <div v-if="form.certification_id" class="actionbar">

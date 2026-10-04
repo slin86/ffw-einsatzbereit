@@ -4,10 +4,12 @@ import { RouterLink } from "vue-router";
 
 import { api, download, errorText } from "../api";
 import FilterBar from "../components/FilterBar.vue";
+import PagerBar from "../components/PagerBar.vue";
 import StatusCounts from "../components/StatusCounts.vue";
 import StatusPeg from "../components/StatusPeg.vue";
 import { useMatrixFilter } from "../filter";
 import { cellHint, certShortName, formatDate, STATUS_LABEL } from "../labels";
+import { pageSize, setPageSize, usePaging } from "../paging";
 import type { Certification, Overview, Position } from "../types";
 
 const { filter, update, reset, queryString } = useMatrixFilter();
@@ -48,6 +50,8 @@ async function exportAs(fmt: "csv" | "xlsx" | "pdf"): Promise<void> {
   }
 }
 
+const allRows = computed(() => data.value?.rows ?? []);
+const paging = usePaging(allRows, queryString);
 const certs = computed(() => data.value?.certifications ?? []);
 const certById = computed(() => new Map(certs.value.map((c) => [c.id, c])));
 </script>
@@ -90,7 +94,7 @@ const certById = computed(() => new Map(certs.value.map((c) => [c.id, c])));
             </tr>
           </thead>
           <tbody>
-            <tr v-for="row in data.rows" :key="row.member.id" :class="{ inactive: !row.member.is_active }">
+            <tr v-for="row in paging.pageItems.value" :key="row.member.id" :class="{ inactive: !row.member.is_active }">
               <th class="sticky" scope="row">
                 <RouterLink :to="`/kameraden/${row.member.id}`">
                   {{ row.member.last_name }}, {{ row.member.first_name }}
@@ -112,7 +116,7 @@ const certById = computed(() => new Map(certs.value.map((c) => [c.id, c])));
       </div>
 
       <ul v-if="data.rows.length" class="list board">
-        <li v-for="row in data.rows" :key="row.member.id">
+        <li v-for="row in paging.pageItems.value" :key="row.member.id">
           <RouterLink :to="`/kameraden/${row.member.id}`" class="list-item">
             <div class="who">
               <strong>{{ row.member.last_name }}, {{ row.member.first_name }}</strong>
@@ -133,6 +137,15 @@ const certById = computed(() => new Map(certs.value.map((c) => [c.id, c])));
           </RouterLink>
         </li>
       </ul>
+
+      <PagerBar
+        :total="paging.total.value"
+        :page="paging.page.value"
+        :count="paging.count.value"
+        :size="pageSize"
+        @update:page="paging.setPage"
+        @update:size="setPageSize"
+      />
     </template>
   </div>
 </template>

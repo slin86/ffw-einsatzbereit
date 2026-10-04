@@ -3,6 +3,7 @@ import { computed, ref, watch } from "vue";
 
 import { ENTITY_LABEL, type AuditEntityType } from "../../auditText";
 import AuditList from "../../components/AuditList.vue";
+import { AUDIT_LIMITS, auditLimit, setAuditLimit } from "../../paging";
 
 const entityType = ref<AuditEntityType | "">("");
 const search = ref("");
@@ -16,7 +17,7 @@ watch(search, (v) => {
 const types = Object.keys(ENTITY_LABEL) as AuditEntityType[];
 
 const source = computed(() => {
-  const params = new URLSearchParams({ limit: "50" });
+  const params = new URLSearchParams({ limit: String(auditLimit.value) });
   if (entityType.value) params.set("entity_type", entityType.value);
   if (debounced.value) params.set("q", debounced.value);
   return `/api/audit?${params.toString()}`;
@@ -38,6 +39,12 @@ const source = computed(() => {
       <label>
         Suche
         <input v-model="search" type="search" placeholder="Kamerad, Nachweis oder Benutzer" />
+      </label>
+      <label>
+        Einträge pro Abruf
+        <select :value="auditLimit" @change="setAuditLimit(Number(($event.target as HTMLSelectElement).value))">
+          <option v-for="n in AUDIT_LIMITS" :key="n" :value="n">{{ n }}</option>
+        </select>
       </label>
     </div>
     <AuditList :source="source" show-entity />

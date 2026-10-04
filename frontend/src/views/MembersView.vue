@@ -5,6 +5,8 @@ import { RouterLink, useRouter } from "vue-router";
 import { api, errorText } from "../api";
 import DeleteMembersDialog from "../components/DeleteMembersDialog.vue";
 import MemberDialog from "../components/MemberDialog.vue";
+import PagerBar from "../components/PagerBar.vue";
+import { pageSize, setPageSize, usePaging } from "../paging";
 import { session } from "../session";
 import type { Member, Position } from "../types";
 
@@ -38,6 +40,8 @@ const filtered = computed(() => {
   if (!q) return members.value;
   return members.value.filter((m) => `${m.number} ${m.last_name} ${m.first_name}`.toLowerCase().includes(q));
 });
+
+const paging = usePaging(filtered, () => `${search.value}|${includeInactive.value}`);
 
 function onSaved(m: Member): void {
   void router.push(`/kameraden/${m.id}`);
@@ -87,7 +91,7 @@ async function onDeleted(deleted: number): Promise<void> {
     <p v-if="notice" class="notice" role="status">{{ notice }}</p>
 
     <ul v-if="filtered.length" class="list">
-      <li v-for="m in filtered" :key="m.id" class="entry">
+      <li v-for="m in paging.pageItems.value" :key="m.id" class="entry">
         <label v-if="isAdmin" class="pick">
           <input
             type="checkbox"
@@ -112,6 +116,14 @@ async function onDeleted(deleted: number): Promise<void> {
       Noch keine Kameraden erfasst. Lege den ersten mit „Kamerad anlegen“ an.
     </p>
     <p v-else class="panel">Niemand passt zu „{{ search }}“.</p>
+    <PagerBar
+      :total="paging.total.value"
+      :page="paging.page.value"
+      :count="paging.count.value"
+      :size="pageSize"
+      @update:page="paging.setPage"
+      @update:size="setPageSize"
+    />
 
     <MemberDialog ref="dialog" :member="null" :positions="positions" @saved="onSaved" />
     <DeleteMembersDialog ref="deleteDialog" @deleted="onDeleted" />
