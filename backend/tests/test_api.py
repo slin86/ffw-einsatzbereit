@@ -74,34 +74,23 @@ def test_overview_flow(
     client: TestClient, admin_headers: dict[str, str], user_headers: dict[str, str]
 ) -> None:
     ids = _setup(client, admin_headers)
-    anna = client.post(
+    anna_res = client.post(
         "/api/members",
         headers=user_headers,
         json={
-            "number": "101",
             "last_name": "Albers",
             "first_name": "Anna",
             "position_ids": [ids["agt"], ids["basis"]],
         },
-    ).json()["id"]
-    ben = client.post(
+    ).json()
+    anna = anna_res["id"]
+    ben_res = client.post(
         "/api/members",
         headers=user_headers,
-        json={
-            "number": "102",
-            "last_name": "Brandt",
-            "first_name": "Ben",
-            "position_ids": [ids["basis"]],
-        },
-    ).json()["id"]
-    assert (
-        client.post(
-            "/api/members",
-            headers=user_headers,
-            json={"number": "101", "last_name": "Dup", "first_name": "X"},
-        ).status_code
-        == 409
-    )
+        json={"last_name": "Brandt", "first_name": "Ben", "position_ids": [ids["basis"]]},
+    ).json()
+    ben = ben_res["id"]
+    assert (anna_res["number"], ben_res["number"]) == ("1", "2")
 
     today = date.today()
     almost = add_months(today, -12) + timedelta(days=20)
@@ -157,7 +146,6 @@ def test_overview_flow(
         f"/api/members/{ben}",
         headers=user_headers,
         json={
-            "number": "102",
             "last_name": "Brandt",
             "first_name": "Ben",
             "is_active": False,
@@ -182,7 +170,7 @@ def test_completion_rules(
     m = client.post(
         "/api/members",
         headers=user_headers,
-        json={"number": "1", "last_name": "A", "first_name": "B"},
+        json={"last_name": "A", "first_name": "B"},
     ).json()["id"]
     base = {"member_id": m, "certification_id": manual}
     today = date.today().isoformat()
@@ -219,7 +207,6 @@ def test_exports(client: TestClient, admin_headers: dict[str, str]) -> None:
         "/api/members",
         headers=admin_headers,
         json={
-            "number": "7",
             "last_name": "Müller",
             "first_name": "Jörg",
             "position_ids": [ids["agt"]],
@@ -246,7 +233,6 @@ def test_bulk_completions(
             "/api/members",
             headers=user_headers,
             json={
-                "number": str(n),
                 "last_name": f"M{n}",
                 "first_name": "X",
                 "position_ids": [ids["agt"]],

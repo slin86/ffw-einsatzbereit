@@ -36,10 +36,10 @@ def test_member_and_completion_changes_are_logged(
     member = client.post(
         "/api/members",
         headers=user_headers,
-        json={"number": "7", "last_name": "Voß", "first_name": "Ida", "position_ids": [pos]},
+        json={"last_name": "Voß", "first_name": "Ida", "position_ids": [pos]},
     ).json()["id"]
 
-    same = {"number": "7", "last_name": "Voß", "first_name": "Ida", "position_ids": [pos]}
+    same = {"last_name": "Voß", "first_name": "Ida", "position_ids": [pos]}
     client.put(f"/api/members/{member}", headers=user_headers, json=same)
     client.put(
         f"/api/members/{member}",
@@ -80,9 +80,9 @@ def test_member_and_completion_changes_are_logged(
         "is_active": [True, False],
         "positions": [["Basis"], []],
     }
-    assert update["entity_label"] == "Voß, Ina (7)"
+    assert update["entity_label"] == "Voß, Ina (1)"
     assert entries[0]["changes"]["note"] == "Kurs DRK"
-    assert entries[0]["entity_label"] == "Voß, Ina (7): Erste Hilfe"
+    assert entries[0]["entity_label"] == "Voß, Ina (1): Erste Hilfe"
     assert entries[1]["changes"]["completed_on"] == "2025-01-10"
 
 

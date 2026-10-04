@@ -8,7 +8,7 @@ const props = defineProps<{ member: Member | null; positions: Position[] }>();
 const emit = defineEmits<{ saved: [member: Member] }>();
 
 const dialog = ref<HTMLDialogElement | null>(null);
-const form = ref({ number: "", last_name: "", first_name: "", is_active: true, position_ids: [] as number[] });
+const form = ref({ last_name: "", first_name: "", is_active: true, position_ids: [] as number[] });
 const error = ref("");
 const saving = ref(false);
 
@@ -16,13 +16,12 @@ function resetForm(): void {
   const m = props.member;
   form.value = m
     ? {
-        number: m.number,
         last_name: m.last_name,
         first_name: m.first_name,
         is_active: m.is_active,
         position_ids: m.positions.map((p) => p.id),
       }
-    : { number: "", last_name: "", first_name: "", is_active: true, position_ids: [] };
+    : { last_name: "", first_name: "", is_active: true, position_ids: [] };
 }
 watch(() => props.member, resetForm, { immediate: true });
 
@@ -55,8 +54,9 @@ defineExpose({ open });
   <dialog ref="dialog">
     <form class="dialog-body form" @submit.prevent="save">
       <h2>{{ member ? "Kamerad bearbeiten" : "Kamerad anlegen" }}</h2>
+      <p v-if="member" class="muted small">Nr {{ member.number }}</p>
+      <p v-else class="muted small">Die Nummer wird automatisch vergeben.</p>
       <div class="form-grid">
-        <label>Nr <input v-model="form.number" required maxlength="32" inputmode="numeric" /></label>
         <label>Name <input v-model="form.last_name" required maxlength="80" autocomplete="off" /></label>
         <label>Vorname <input v-model="form.first_name" required maxlength="80" autocomplete="off" /></label>
       </div>

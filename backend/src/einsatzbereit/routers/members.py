@@ -34,6 +34,8 @@ from einsatzbereit.services.status import active_certifications, build_cells, ex
 
 router = APIRouter(prefix="/api", tags=["members"])
 
+_NUMBER_RETRIES = 5
+
 
 def _get_member(db: DbSession, member_id: int) -> Member:
     member = db.get(Member, member_id)
@@ -55,6 +57,16 @@ def _flush(db: DbSession) -> None:
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(status.HTTP_409_CONFLICT, "Number already in use") from exc
+
+
+def next_member_number(db: DbSession) -> str:
+    """
+    Returns the next free member number. This is the highest purely numeric number plus one, or
+    1 if there is none. Numbers that are not purely numeric are ignored.
+    """
+    numbers = db.scalars(select(Member.number))
+    highest = max((int(n) for n in numbers if n.isascii() and n.isdigit()), default=0)
+    return str(highest + 1)
 
 
 def completion_out(c: Completion) -> CompletionOut:
@@ -86,15 +98,26 @@ def list_members(_: CurrentUser, db: DbSession, include_inactive: bool = False) 
 
 @router.post("/members", response_model=MemberOut, status_code=status.HTTP_201_CREATED)
 def create_member(body: MemberIn, user: CurrentUser, db: DbSession) -> Member:
-    member = Member(
-        number=body.number.strip(),
-        last_name=body.last_name.strip(),
-        first_name=body.first_name.strip(),
-        is_active=body.is_active,
-        positions=_load_positions(db, body.position_ids),
-    )
-    db.add(member)
-    _flush(db)
+    """
+    Creates a member and assigns the next free number automatically. If two requests pick the
+    same number at the same time, the loser retries with the next one.
+    """
+    position_ids = body.position_ids
+    for attempt in range(_NUMBER_RETRIES):
+        member = Member(
+            number=next_member_number(db),
+            last_name=body.last_name.strip(),
+            first_name=body.first_name.strip(),
+            is_active=body.is_active,
+            positions=_load_positions(db, position_ids),
+        )
+        db.add(member)
+        try:
+            _flush(db)
+            break
+        except HTTPException:
+            if attempt == _NUMBER_RETRIES - 1:
+                raise
     audit.record(
         db,
         user,
@@ -112,14 +135,12 @@ def create_member(body: MemberIn, user: CurrentUser, db: DbSession) -> Member:
 @router.put("/members/{member_id}", response_model=MemberOut)
 def update_member(member_id: int, body: MemberIn, user: CurrentUser, db: DbSession) -> Member:
     """
-    Updates a member and records the change. Positions are loaded before the member changes,
-    otherwise autoflush would write a duplicate number early and the request would fail with a
-    server error instead of a conflict.
+    Updates a member and records the change. The member number is assigned on creation and is
+    never changed afterwards.
     """
     member = _get_member(db, member_id)
     positions = _load_positions(db, body.position_ids)
     before = audit.member_snapshot(member)
-    member.number = body.number.strip()
     member.last_name = body.last_name.strip()
     member.first_name = body.first_name.strip()
     member.is_active = body.is_active

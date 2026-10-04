@@ -144,7 +144,6 @@ class PositionRef(ORMModel):
 
 
 class MemberIn(BaseModel):
-    number: str = Field(min_length=1, max_length=32)
     last_name: str = Field(min_length=1, max_length=80)
     first_name: str = Field(min_length=1, max_length=80)
     is_active: bool = True

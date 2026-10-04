@@ -21,12 +21,11 @@ def setup_members(
         "/api/positions", headers=admin, json={"name": "Basis", "certification_ids": [cert]}
     ).json()["id"]
     ids = {}
-    for number, name in (("1", "Albers"), ("2", "Brandt"), ("3", "Claußen")):
+    for name in ("Albers", "Brandt", "Claußen"):
         member = client.post(
             "/api/members",
             headers=user,
             json={
-                "number": number,
                 "last_name": name,
                 "first_name": "X",
                 "position_ids": [position],

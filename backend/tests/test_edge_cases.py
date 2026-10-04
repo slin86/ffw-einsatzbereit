@@ -278,7 +278,7 @@ class TestCatalog:
 class TestMembers:
     def test_member_edge_cases(self, client: TestClient, user_headers: dict[str, str]) -> None:
         h = user_headers
-        body = {"number": "1", "last_name": "A", "first_name": "B"}
+        body = {"last_name": "A", "first_name": "B"}
         assert (
             client.post(
                 "/api/members", headers=h, json={**body, "position_ids": [9999]}
@@ -287,9 +287,13 @@ class TestMembers:
         )
         assert client.put("/api/members/9999", headers=h, json=body).status_code == 404
         assert client.get("/api/members/9999", headers=h).status_code == 404
-        first = client.post("/api/members", headers=h, json=body).json()["id"]
-        second = client.post("/api/members", headers=h, json={**body, "number": "2"}).json()["id"]
-        assert client.put(f"/api/members/{second}", headers=h, json=body).status_code == 409
+        first_res = client.post("/api/members", headers=h, json=body).json()
+        second_res = client.post("/api/members", headers=h, json=body).json()
+        first, second = first_res["id"], second_res["id"]
+        assert (first_res["number"], second_res["number"]) == ("1", "2")
+        # The number is assigned once and does not change on update, even if the client sends one.
+        updated = client.put(f"/api/members/{second}", headers=h, json={**body, "number": "1"})
+        assert updated.status_code == 200 and updated.json()["number"] == "2"
         client.put(f"/api/members/{first}", headers=h, json={**body, "is_active": False})
         assert [m["id"] for m in client.get("/api/members", headers=h).json()] == [second]
         assert len(client.get("/api/members?include_inactive=true", headers=h).json()) == 2
@@ -301,7 +305,7 @@ class TestMembers:
         member = client.post(
             "/api/members",
             headers=user_headers,
-            json={"number": "1", "last_name": "A", "first_name": "B"},
+            json={"last_name": "A", "first_name": "B"},
         ).json()["id"]
         today = date.today().isoformat()
         base = {"member_id": member, "certification_id": cert, "completed_on": today}
@@ -350,12 +354,11 @@ class TestOverview:
             json={"name": "AGT", "certification_ids": [cert]},
         )
         pos_id = pos.json()["id"]
-        for n, name in ((1, "Albers"), (2, "Brandt")):
+        for name in ("Albers", "Brandt"):
             client.post(
                 "/api/members",
                 headers=admin_headers,
                 json={
-                    "number": str(n),
                     "last_name": name,
                     "first_name": "X",
                     "position_ids": [pos_id],
@@ -417,3 +420,32 @@ class TestStatusAndExport:
         matrix = build_matrix(db, MatrixFilter(only_open=True), today=date(2026, 1, 1))
         assert matrix.rows == [] and matrix.certifications == []
         assert set(matrix.counts().values()) == {0}
+
+
+class TestMemberNumbering:
+    def test_next_number_skips_gaps_and_ignores_non_numeric(
+        self, client: TestClient, user_headers: dict[str, str], db: Session
+    ) -> None:
+        from einsatzbereit.routers.members import next_member_number
+
+        assert next_member_number(db) == "1"
+        db.add_all(
+            [
+                Member(number="07", last_name="A", first_name="X"),
+                Member(number="34", last_name="B", first_name="X"),
+                Member(number="X-1", last_name="C", first_name="X"),
+            ]
+        )
+        db.commit()
+        assert next_member_number(db) == "35"
+        created = client.post(
+            "/api/members", headers=user_headers, json={"last_name": "D", "first_name": "X"}
+        )
+        assert created.json()["number"] == "35"
+
+    def test_number_sent_by_client_is_ignored(
+        self, client: TestClient, user_headers: dict[str, str]
+    ) -> None:
+        body = {"number": "99", "last_name": "A", "first_name": "B"}
+        created = client.post("/api/members", headers=user_headers, json=body)
+        assert created.status_code == 201 and created.json()["number"] == "1"
