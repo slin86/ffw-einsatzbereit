@@ -17,6 +17,9 @@ what is missing or about to expire. Mobile first, works well on a laptop too.
 - **Admin** – certifications (with validity rules and warning period), positions, users
 - Login with JWT + rotating refresh cookie, optional TOTP 2FA, password reset by e-mail
 
+On phones the app starts a separate mobile layout with bottom tabs, bottom sheets and a guided
+record flow; the desktop layout stays as it is. See [docs/mobile.md](docs/mobile.md).
+
 Stack: FastAPI · SQLAlchemy 2 · Alembic · PostgreSQL · Vue 3 · TypeScript · Vite.
 See [AGENTS.md](AGENTS.md) for architecture, domain rules and conventions.
 

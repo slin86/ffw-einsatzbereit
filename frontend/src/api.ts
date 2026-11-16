@@ -73,17 +73,51 @@ export async function api<T>(path: string, method = "GET", body?: unknown): Prom
   return (await res.json()) as T;
 }
 
-/** Downloads a file through the API and saves it under the file name sent by the server. */
-export async function download(path: string): Promise<void> {
+/** Loads a file through the API together with the file name sent by the server. */
+export async function fetchFile(path: string): Promise<{ blob: Blob; filename: string }> {
   const res = await raw(path);
   const disposition = res.headers.get("Content-Disposition") ?? "";
   const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? "export";
-  const url = URL.createObjectURL(await res.blob());
+  return { blob: await res.blob(), filename };
+}
+
+function saveBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Downloads a file through the API and saves it under the file name sent by the server. */
+export async function download(path: string): Promise<void> {
+  const { blob, filename } = await fetchFile(path);
+  saveBlob(blob, filename);
+}
+
+type ShareNavigator = Pick<Navigator, "share" | "canShare">;
+
+/**
+ * Opens the share sheet of the device with the file, so it can go straight to a messenger or mail. Without file
+ * sharing the file is downloaded. Returns false if the user closed the share sheet.
+ */
+export async function shareFile(
+  path: string,
+  nav: Partial<ShareNavigator> | undefined = globalThis.navigator,
+): Promise<boolean> {
+  const { blob, filename } = await fetchFile(path);
+  const file = new File([blob], filename, { type: blob.type });
+  if (nav?.share && nav.canShare?.({ files: [file] })) {
+    try {
+      await nav.share({ files: [file], title: filename });
+      return true;
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") return false;
+    }
+  }
+  saveBlob(blob, filename);
+  return true;
 }
 
 const GONE = "Nicht mehr vorhanden. Lade die Seite neu, vielleicht wurde es inzwischen gelöscht.";

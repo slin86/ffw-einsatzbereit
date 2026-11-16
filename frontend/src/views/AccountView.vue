@@ -4,6 +4,7 @@ import { ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 
 import { api, errorText } from "../api";
+import LayoutSwitch from "../components/LayoutSwitch.vue";
 import { logout, session } from "../session";
 import type { User } from "../types";
 
@@ -143,6 +144,12 @@ async function doLogout(): Promise<void> {
         <p v-if="pwMsg" class="notice">{{ pwMsg }}</p>
         <button type="submit">Passwort ändern</button>
       </form>
+    </section>
+
+    <section>
+      <h2>Ansicht</h2>
+      <p class="muted">Automatisch nimmt auf dem Handy die Handy-Ansicht, sonst die Desktop-Ansicht.</p>
+      <LayoutSwitch />
     </section>
 
     <section>
