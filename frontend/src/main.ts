@@ -5,12 +5,16 @@ import "@fontsource/barlow-condensed/600.css";
 import "@fontsource/barlow-condensed/700.css";
 import "./styles.css";
 
-import { createApp } from "vue";
+import { type Component, createApp } from "vue";
 
 import { setAuthLostHandler } from "./api";
-import App from "./App.vue";
-import { router } from "./router";
+import { currentLayout } from "./layout";
+import { createAppRouter } from "./router";
 import { restoreSession, session } from "./session";
+
+const layout = currentLayout();
+document.documentElement.dataset.layout = layout;
+const router = createAppRouter(layout);
 
 setAuthLostHandler(() => {
   session.user = null;
@@ -23,4 +27,9 @@ if ("serviceWorker" in navigator) {
   void navigator.serviceWorker.register("/sw.js").catch(() => {});
 }
 
-void restoreSession().then(() => createApp(App).use(router).mount("#app"));
+const root: Promise<Component> =
+  layout === "mobile"
+    ? import("./mobile/MobileApp.vue").then((m) => m.default)
+    : import("./App.vue").then((m) => m.default);
+
+void Promise.all([root, restoreSession()]).then(([App]) => createApp(App).use(router).mount("#app"));

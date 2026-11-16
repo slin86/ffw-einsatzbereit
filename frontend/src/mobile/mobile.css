@@ -1,0 +1,423 @@
+/* Mobile layout. Loaded only when the mobile shell runs, the desktop styles stay untouched. */
+
+:root[data-layout="mobile"] {
+  --paper: #eef1f4;
+  --seg-track: #dde3e9;
+  --tabbar-h: 3.6rem;
+  --pad: 1.25rem;
+  --r-group: 14px;
+  --press: rgb(22 32 43 / 0.06);
+  -webkit-tap-highlight-color: transparent;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-layout="mobile"] {
+    --paper: #0d1218;
+    --seg-track: #222c37;
+    --press: rgb(255 255 255 / 0.06);
+  }
+}
+
+:root[data-layout="mobile"] body {
+  overscroll-behavior-y: none;
+  background: var(--paper);
+}
+
+.m-app main {
+  min-height: 100dvh;
+  padding-bottom: 2rem;
+}
+.m-app.has-tabs main {
+  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 2rem);
+}
+
+/* Shared building blocks of the mobile screens */
+
+.m-app .icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.25rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+}
+.m-app .icon-btn:active {
+  background: var(--press);
+}
+
+.m-app .section {
+  padding: 0 var(--pad);
+  margin-top: 1.5rem;
+}
+.m-app .section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 0.5rem;
+  padding: 0 0.25rem;
+}
+.m-app .section-head h2 {
+  font-size: 1.35rem;
+  margin: 0;
+}
+.m-app .section-head .link {
+  font-size: 0.95rem;
+}
+
+.m-app .group {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border-radius: var(--r-group);
+  overflow: hidden;
+}
+.m-app .group > li + li {
+  border-top: 1px solid var(--line);
+}
+.m-app .group-label {
+  margin: 0.9rem 0.25rem 0.35rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.m-app .cell {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  min-height: 3.5rem;
+  padding: 0.65rem 1rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 400;
+  text-align: left;
+  text-decoration: none;
+  justify-content: flex-start;
+}
+.m-app .cell:active {
+  background: var(--press);
+}
+.m-app .cell-icon {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  background: var(--brand);
+  color: #fff;
+  flex-shrink: 0;
+}
+.m-app .cell-main {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.m-app .cell-main strong {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.m-app .cell-sub {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.m-app .cell-end {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.m-app .cell.danger-text,
+.m-app .danger-text {
+  color: var(--bad-ink);
+}
+
+.m-app .chip {
+  flex-shrink: 0;
+  min-height: 2.4rem;
+  padding: 0.3rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 500;
+}
+.m-app .chip[aria-pressed="true"] {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--brand-ink);
+}
+.m-app .chip-row {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding: 0 var(--pad) 0.25rem;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.m-app .chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+.m-app button.big,
+.m-app .button.big {
+  width: 100%;
+  min-height: 3.25rem;
+  border-radius: 12px;
+  font-size: 1.05rem;
+}
+.m-app button:active:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+.m-app .search-field {
+  position: relative;
+  display: block;
+}
+.m-app .search-field input {
+  padding-left: 2.4rem;
+  border-radius: 12px;
+  border-color: transparent;
+  background: var(--seg-track);
+  min-height: 2.6rem;
+}
+.m-app .search-field .micon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.m-app .empty {
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  color: var(--muted);
+}
+.m-app .empty strong {
+  display: block;
+  color: var(--ink);
+  font-family: var(--font-cond);
+  font-size: 1.35rem;
+  margin-bottom: 0.25rem;
+}
+.m-app .empty .button,
+.m-app .empty button {
+  margin-top: 1rem;
+}
+
+.m-app .skeleton {
+  border-radius: var(--r-group);
+  background: var(--surface);
+  height: 4.5rem;
+  margin-bottom: 0.5rem;
+  animation: m-pulse 1.2s ease-in-out infinite alternate;
+}
+@keyframes m-pulse {
+  to {
+    opacity: 0.5;
+  }
+}
+
+.m-app fieldset.plain {
+  border: none;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+.m-app fieldset.plain legend {
+  padding: 0;
+  font-weight: 500;
+  font-size: var(--fs-s);
+  margin-bottom: 0.25rem;
+}
+
+/* Every dialog becomes a bottom sheet, also the dialogs of reused desktop pages */
+
+.m-app dialog {
+  width: 100%;
+  max-width: 40rem;
+  margin: auto auto 0;
+  max-height: calc(100dvh - env(safe-area-inset-top) - 1.5rem);
+  border-radius: 18px 18px 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.m-app dialog[open] {
+  animation: m-sheet-in 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.m-app dialog::backdrop {
+  background: rgb(5 12 20 / 0.45);
+}
+@keyframes m-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+.m-app dialog .dialog-body .row {
+  display: grid;
+  grid-auto-flow: row;
+}
+.m-app dialog .dialog-body .row button {
+  width: 100%;
+  min-height: 3.1rem;
+}
+
+/* Tab bar */
+
+.m-app .tabbar {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: end;
+  height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: saturate(1.6) blur(16px);
+  -webkit-backdrop-filter: saturate(1.6) blur(16px);
+  border-top: 1px solid var(--line);
+}
+.m-app .tab {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 0.1rem;
+  height: var(--tabbar-h);
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.m-app .tab.active {
+  color: var(--brand);
+}
+@media (prefers-color-scheme: dark) {
+  .m-app .tab.active {
+    color: #8fb6e6;
+  }
+}
+.m-app .tab.record {
+  position: relative;
+}
+.m-app .record-btn {
+  display: grid;
+  place-items: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  margin-top: -1.6rem;
+  border-radius: 1.1rem;
+  background: var(--brand);
+  color: #fff;
+  box-shadow:
+    0 0 0 4px var(--paper),
+    0 6px 16px rgb(20 40 70 / 0.35);
+  transition: transform 0.12s;
+}
+.m-app .tab.record:active .record-btn {
+  transform: scale(0.92);
+}
+
+/* Toasts sit above the tab bar */
+
+.m-app .toasts {
+  position: fixed;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: calc(env(safe-area-inset-bottom) + 1rem);
+  z-index: 60;
+  display: grid;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+.m-app.has-tabs .toasts {
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 0.75rem);
+}
+.m-app .toast {
+  pointer-events: auto;
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  min-height: 3rem;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 14px;
+  background: #1c2733;
+  color: #fff;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+}
+.m-app .toast.ok .micon {
+  color: #7fd6a0;
+}
+.m-app .toast.error {
+  background: var(--bad);
+}
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.toast-enter-active,
+.toast-leave-active {
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+}
+
+/* Back bar and spacing for desktop pages shown inside the mobile layout */
+
+.m-app .backbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  min-height: calc(3.25rem + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) 0.5rem 0;
+  display: flex;
+  align-items: center;
+  background: color-mix(in srgb, var(--paper) 86%, transparent);
+  backdrop-filter: saturate(1.6) blur(14px);
+  -webkit-backdrop-filter: saturate(1.6) blur(14px);
+}
+.m-app .backbar .back {
+  color: var(--focus);
+  font-weight: 500;
+  padding-right: 0.6rem;
+}
+.m-app main.reused .page {
+  padding: 0.25rem var(--pad) 2rem;
+}
+.m-app main.reused .page h1 {
+  font-size: 2.35rem;
+}
+.m-app main.reused .list {
+  border: none;
+  border-radius: var(--r-group);
+}
+.m-app main.reused .panel {
+  border: none;
+  border-radius: var(--r-group);
+}
+.m-app main.reused .spread {
+  margin-bottom: 0.75rem;
+}
+.m-app main.reused .spread > button,
+.m-app main.reused .form > button {
+  width: 100%;
+}

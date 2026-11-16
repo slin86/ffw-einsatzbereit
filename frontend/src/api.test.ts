@@ -9,6 +9,7 @@ import {
   refreshAccessToken,
   setAccessToken,
   setAuthLostHandler,
+  shareFile,
 } from "./api";
 
 type Handler = (url: string, init: RequestInit) => Response | Promise<Response>;
@@ -181,6 +182,54 @@ describe("download", () => {
     mockFetch(() => new Response("x", { status: 200 }));
     await download("/api/exports/pdf");
     expect(anchor.download).toBe("export");
+  });
+});
+
+describe("shareFile", () => {
+  function stubDom() {
+    const anchor = { href: "", download: "", click: vi.fn() };
+    vi.stubGlobal("document", { createElement: vi.fn(() => anchor) });
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: vi.fn(() => "blob:1"), revokeObjectURL: vi.fn() }));
+    return anchor;
+  }
+  const pdf = () =>
+    new Response("%PDF", {
+      status: 200,
+      headers: { "Content-Type": "application/pdf", "Content-Disposition": 'attachment; filename="liste.pdf"' },
+    });
+
+  it("opens the share sheet when files can be shared", async () => {
+    const anchor = stubDom();
+    mockFetch(pdf);
+    const share = vi.fn(async () => {});
+    await expect(shareFile("/api/exports/pdf", { share, canShare: () => true })).resolves.toBe(true);
+    const arg = (share.mock.calls[0] as unknown as [ShareData])[0];
+    expect(arg.files![0]!.name).toBe("liste.pdf");
+    expect(anchor.click).not.toHaveBeenCalled();
+  });
+
+  it("reports a closed share sheet", async () => {
+    stubDom();
+    mockFetch(pdf);
+    const share = vi.fn(async () => {
+      throw Object.assign(new Error("closed"), { name: "AbortError" });
+    });
+    await expect(shareFile("/api/exports/pdf", { share, canShare: () => true })).resolves.toBe(false);
+  });
+
+  it("downloads when sharing fails or is not supported", async () => {
+    const anchor = stubDom();
+    mockFetch(pdf);
+    const share = vi.fn(async () => {
+      throw new Error("denied");
+    });
+    await shareFile("/api/exports/pdf", { share, canShare: () => true });
+    expect(anchor.click).toHaveBeenCalledTimes(1);
+    await shareFile("/api/exports/pdf", { share, canShare: () => false });
+    await shareFile("/api/exports/pdf", {});
+    await shareFile("/api/exports/pdf", undefined);
+    expect(anchor.click).toHaveBeenCalledTimes(4);
+    expect(anchor.download).toBe("liste.pdf");
   });
 });
 
