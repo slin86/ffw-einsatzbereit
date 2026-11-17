@@ -73,8 +73,10 @@ CI runs the tests on both databases and checks that `alembic upgrade head`, `ale
    | `EB_DATABASE_URL` | `postgresql+psycopg://einsatzbereit:<password>@<postgres service>.<namespace>.svc.cluster.local:5432/einsatzbereit` |
    | `EB_DATABASE_PASSWORD` | the same password, only needed for the optional backup job |
    | `EB_INITIAL_ADMIN_USERNAME`, `EB_INITIAL_ADMIN_EMAIL`, `EB_INITIAL_ADMIN_PASSWORD` | first admin, used only by the initial seed; the username defaults to `admin` |
-   | `EB_SMTP_HOST`, `EB_SMTP_PORT`, `EB_SMTP_USERNAME`, `EB_SMTP_PASSWORD`, `EB_SMTP_FROM` | mail relay for password resets; empty host logs the link instead |
 
+   Mail goes through the cluster mail relay (`mail-relay.mail.svc.cluster.local:587`, plain SMTP,
+   no login, sender `noreply@slin.io`). These values are not secret and are set in
+   `deploy/base/app.yaml`, so Infisical needs no `EB_SMTP_*` keys.
 3. Replace all `CHANGE-ME` values in `deploy/base/infisical-secret.yaml`.
 4. Copy `deploy/` into `slin86/argocd` (or point an ArgoCD Application at
    `deploy/overlays/public`) and pin `newTag` to a commit SHA.
@@ -143,6 +145,5 @@ Never enable `EB_SEED_DEMO_DATA` in production.
 
 ## Open points
 
-- SMTP provider for password reset mails (`EB_SMTP_*`)
 - Enable `deploy/base/backup-cronjob.yaml` once the NFS target is set
 - Check the Ingress annotations against the existing Traefik setup
