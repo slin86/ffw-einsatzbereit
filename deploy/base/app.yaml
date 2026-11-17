@@ -43,6 +43,14 @@ spec:
               value: "true"
             - name: TZ
               value: Europe/Berlin
+            - name: EB_SMTP_HOST
+              value: mail-relay.mail.svc.cluster.local
+            - name: EB_SMTP_PORT
+              value: "587"
+            - name: EB_SMTP_STARTTLS
+              value: "false"
+            - name: EB_SMTP_FROM
+              value: noreply@slin.io
           ports:
             - containerPort: 8000
           readinessProbe:
